@@ -29,7 +29,17 @@ jobs:
       - name: Build
         run: npm run build
       
+      - name: Check npm authentication
+        run: npm whoami
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      
       - name: Publish to npm
-        run: npm publish --access public
+        run: |
+          echo "Publishing @faros-fde-sandbox/cli@1.0.0..."
+          npm publish --access public --verbose
+          echo "Verifying publication..."
+          sleep 5
+          npm view @faros-fde-sandbox/cli version || echo "Warning: Package not found on registry yet"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
