@@ -1,7 +1,8 @@
 # Faros CLI Configuration
 # 
 # This file contains non-sensitive configuration for the Faros CLI.
-# Store credentials in .env file (never commit that file!)
+# ALL CREDENTIALS (API keys, tokens) must be in .env file or environment
+# variables -- never in this file. See .env.example for credential setup.
 #
 # See CONFIGURATION.md for detailed documentation.
 
@@ -35,42 +36,50 @@ origin: my-company-ci
 # Data Sources
 # ==============================================================================
 # Configure data sources you want to sync.
-# Credentials should be in .env file (LINEAR_API_KEY, GITHUB_TOKEN, etc.)
+# Credentials are read from environment variables / .env file ONLY.
+#   - LINEAR_API_KEY   for Linear
+#   - GITHUB_TOKEN     for GitHub
+#   - FAROS_API_KEY    for the Faros destination
 
 sources:
   # Linear - Project management and issue tracking
+  # Requires: LINEAR_API_KEY in .env
   linear:
     type: Linear
     # How often to sync (not yet implemented, for future use)
     syncInterval: 1h
+    # Only fetch data updated in the last N days (default: 90)
+    cutoffDays: 90
+    # Or use explicit date range (overrides cutoffDays):
+    # startDate: "2024-01-01"
+    # endDate: "2025-01-01"
     # Streams to sync (optional, defaults to all)
     streams:
       - issues
       - projects
       - teams
       - users
+      - comments
+    # Connection name for state file tracking (default: mylinearsrc)
+    # connectionName: mylinearsrc
+    # Docker image overrides (optional):
+    # srcImage: farosai/airbyte-linear-source
+    # dstImage: farosai/airbyte-faros-destination
   
   # GitHub - Source code and development activity
+  # Requires: GITHUB_TOKEN in .env
   github:
     type: GitHub
     syncInterval: 30m
-    # GitHub Token should be in .env as GITHUB_TOKEN
   
   # S3 Test Results - Historical test data from S3 buckets
-  s3-tests:
-    type: S3
-    # S3 bucket name (non-sensitive, can be in config)
-    bucket: my-test-results-bucket
-    # AWS region (non-sensitive)
-    region: us-east-1
-    # Optional: S3 prefix to filter objects
-    prefix: junit/
-    # Optional: Regex pattern to match S3 object keys
-    # Example: ".*\\.xml$" for XML files only
-    pattern: ".*\\.xml$"
-    # AWS credentials should be in .env:
-    #   AWS_ACCESS_KEY_ID
-    #   AWS_SECRET_ACCESS_KEY
+  # Requires: AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in .env
+  # s3-tests:
+  #   type: S3
+  #   bucket: my-test-results-bucket
+  #   region: us-east-1
+  #   prefix: junit/
+  #   pattern: ".*\\.xml$"
 
 # ==============================================================================
 # Default Values
@@ -101,22 +110,20 @@ defaults:
 logs:
   # Log level: debug, info, warn, error
   # Default: info
+  # Logs are written to ./faros.log in the working directory.
+  # View with: faros logs
   level: info
-  
-  # Directory to store log files
-  # Default: ~/.faros/logs
-  # The CLI will create this directory if it doesn't exist
-  directory: ~/.faros/logs
-  
-  # How long to keep log files
-  # Format: <number><unit> where unit is d (days), h (hours), m (minutes)
-  # Examples: "7d", "24h", "168h"
-  # Default: 7d (7 days)
-  retention: 7d
 
 # ==============================================================================
 # Examples
 # ==============================================================================
+#
+# Sync Linear data:
+# -----------------
+# $ faros sync linear
+# $ faros sync linear --streams issues,projects
+# $ faros sync linear --full-refresh
+# $ faros sync linear --dry-run
 #
 # Minimal Configuration:
 # ----------------------

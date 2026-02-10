@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { syncTestsCommand } from './tests';
 import { syncCICDCommand } from './ci-cd';
+import { syncLinearCommand } from './linear';
 
 export function syncCommand(): Command {
   const cmd = new Command('sync');
@@ -11,15 +12,18 @@ export function syncCommand(): Command {
 Available Sources:
   tests      Sync test results (JUnit/TestNG/xUnit/Cucumber/Mocha)
   ci-cd      Sync CI/CD events (builds and deployments)
+  linear     Sync Linear data (issues, projects, teams, users, comments)
 
 Examples:
   $ faros sync tests test-results/*.xml --source "Jenkins"
   $ faros sync ci-cd build --status Success --commit "GitHub://org/repo/abc"
+  $ faros sync linear --streams issues,projects
     `);
   
   // Register subcommands
   cmd.addCommand(syncTestsCommand());
   cmd.addCommand(syncCICDCommand());
+  cmd.addCommand(syncLinearCommand());
   
   return cmd;
 }

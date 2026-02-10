@@ -1,141 +1,111 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
 import { ui } from '../../lib/ui';
+import { LOG_FILE_PATH } from '../../lib/logger';
+
+// pino numeric levels -> names
+const LEVEL_NAMES: Record<number, string> = {
+  10: 'trace', 20: 'debug', 30: 'info', 40: 'warn', 50: 'error', 60: 'fatal',
+};
+
+function levelName(level: any): string {
+  if (typeof level === 'number') return LEVEL_NAMES[level] ?? String(level);
+  return String(level);
+}
+
+function formatLevel(level: string): string {
+  switch (level) {
+    case 'info':  return chalk.blue('INFO ');
+    case 'warn':  return chalk.yellow('WARN ');
+    case 'error': return chalk.red('ERROR');
+    case 'fatal': return chalk.red.bold('FATAL');
+    case 'debug': return chalk.dim('DEBUG');
+    case 'trace': return chalk.dim('TRACE');
+    default:      return level.toUpperCase().padEnd(5);
+  }
+}
 
 interface LogEntry {
-  timestamp: string;
+  time: string;
   level: string;
   source?: string;
-  message: string;
+  msg: string;
+  [key: string]: any;
 }
 
-function getLogsDirectory(): string {
-  return path.join(os.homedir(), '.faros', 'logs');
-}
+function readLogFile(): LogEntry[] {
+  if (!fs.existsSync(LOG_FILE_PATH)) return [];
 
-function readLogs(options: any): LogEntry[] {
-  const logsDir = getLogsDirectory();
-  
-  if (!fs.existsSync(logsDir)) {
-    return [];
+  const lines = fs.readFileSync(LOG_FILE_PATH, 'utf-8').split('\n').filter(Boolean);
+  const entries: LogEntry[] = [];
+  for (const line of lines) {
+    try {
+      const raw = JSON.parse(line);
+      entries.push({
+        time: raw.time ?? raw.timestamp ?? '',
+        level: levelName(raw.level),
+        source: raw.source,
+        msg: raw.msg ?? raw.message ?? '',
+        ...raw,
+      });
+    } catch { /* skip malformed lines */ }
   }
-  
-  const logFiles = fs.readdirSync(logsDir)
-    .filter(f => f.endsWith('.log'))
-    .sort()
-    .reverse();
-  
-  const logs: LogEntry[] = [];
-  
-  for (const file of logFiles.slice(0, 10)) { // Last 10 log files
-    const content = fs.readFileSync(path.join(logsDir, file), 'utf-8');
-    const lines = content.split('\n').filter(l => l.trim());
-    
-    for (const line of lines) {
-      try {
-        const entry = JSON.parse(line);
-        logs.push({
-          timestamp: entry.time || entry.timestamp,
-          level: entry.level,
-          source: entry.source,
-          message: entry.msg || entry.message,
-        });
-      } catch {
-        // Skip invalid lines
-      }
-    }
-  }
-  
-  return logs;
-}
-
-function formatLogLevel(level: string): string {
-  switch (level.toLowerCase()) {
-    case 'info':
-      return chalk.blue('INFO');
-    case 'warn':
-    case 'warning':
-      return chalk.yellow('WARN');
-    case 'error':
-      return chalk.red('ERROR');
-    case 'debug':
-      return chalk.dim('DEBUG');
-    default:
-      return level.toUpperCase();
-  }
+  return entries;
 }
 
 async function viewLogs(options: any): Promise<void> {
-  const logs = readLogs(options);
-  
-  if (logs.length === 0) {
+  let entries = readLogFile();
+
+  if (entries.length === 0) {
     ui.log.info('No logs found');
-    console.log(chalk.dim('Logs are stored in: ' + getLogsDirectory()));
+    console.log(chalk.dim(`Log file: ${LOG_FILE_PATH}`));
     return;
   }
-  
-  // Filter by level
-  let filteredLogs = logs;
+
   if (options.level) {
-    filteredLogs = logs.filter(l => l.level === options.level);
+    entries = entries.filter(e => e.level === options.level.toLowerCase());
   }
-  
-  // Filter by time range
   if (options.since) {
-    const sinceTime = new Date(options.since).getTime();
-    filteredLogs = filteredLogs.filter(l => new Date(l.timestamp).getTime() >= sinceTime);
+    const t = new Date(options.since).getTime();
+    entries = entries.filter(e => new Date(e.time).getTime() >= t);
   }
-  
   if (options.until) {
-    const untilTime = new Date(options.until).getTime();
-    filteredLogs = filteredLogs.filter(l => new Date(l.timestamp).getTime() <= untilTime);
+    const t = new Date(options.until).getTime();
+    entries = entries.filter(e => new Date(e.time).getTime() <= t);
   }
-  
-  // Output to file if requested
-  if (options.outFile) {
-    fs.writeFileSync(options.outFile, JSON.stringify(filteredLogs, null, 2));
-    ui.log.success(`Exported ${filteredLogs.length} log entries to ${options.outFile}`);
-    return;
+
+  // Tail: show last N entries (default 50)
+  const tail = parseInt(options.tail, 10) || 50;
+  entries = entries.slice(-tail);
+
+  console.log(chalk.bold(`\nLogs (${entries.length} entries) — ${LOG_FILE_PATH}\n`));
+
+  for (const e of entries) {
+    const ts = chalk.dim(e.time);
+    const lvl = formatLevel(e.level);
+    const src = e.source ? chalk.cyan(`[${e.source}]`) + ' ' : '';
+    console.log(`${ts}  ${lvl}  ${src}${e.msg}`);
   }
-  
-  // Display logs
-  console.log(chalk.bold(`\nRecent Logs (${filteredLogs.length} entries):\n`));
-  
-  const displayLogs = filteredLogs.slice(0, 100); // Limit to 100 for display
-  
-  for (const log of displayLogs) {
-    const timestamp = new Date(log.timestamp).toLocaleString();
-    const level = formatLogLevel(log.level);
-    const source = log.source ? chalk.cyan(`[${log.source}]`) : '';
-    
-    console.log(`${chalk.dim(timestamp)}  ${level}  ${source} ${log.message}`);
-  }
-  
-  if (filteredLogs.length > 100) {
-    console.log(chalk.dim(`\n... and ${filteredLogs.length - 100} more entries`));
-    console.log(chalk.dim('Use --out-file to export all logs'));
-  }
+
+  console.log();
 }
 
 export function logsCommand(): Command {
   const cmd = new Command('logs');
-  
+
   cmd
-    .description('View sync logs and debug information')
-    .option('--level <level>', 'Filter by log level (info, warn, error, debug)')
-    .option('--since <time>', 'Show logs since time (ISO-8601)')
-    .option('--until <time>', 'Show logs until time (ISO-8601)')
-    .option('--out-file <path>', 'Export logs to file')
-    .option('--follow', 'Follow logs in real-time (not yet implemented)')
+    .description('View faros.log in the current directory')
+    .option('--level <level>', 'Filter by level (debug, info, warn, error)')
+    .option('--since <time>', 'Show entries since (ISO-8601)')
+    .option('--until <time>', 'Show entries until (ISO-8601)')
+    .option('--tail <n>', 'Show last N entries', '50')
     .addHelpText('after', `
 Examples:
   $ faros logs
   $ faros logs --level error
-  $ faros logs --since "2024-01-15T10:00:00Z"
-  $ faros logs --out-file sync-logs.json
+  $ faros logs --tail 20
+  $ faros logs --since "2025-01-01"
     `)
     .action(async (options) => {
       try {
@@ -145,6 +115,6 @@ Examples:
         process.exit(1);
       }
     });
-  
+
   return cmd;
 }

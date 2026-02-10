@@ -1,17 +1,27 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { loadConfig } from '../../config/loader';
+import { loadConfig, mergeConfig } from '../../config/loader';
 import { ui } from '../../lib/ui';
 
-interface Source {
-  name: string;
-  type: string;
-  status: 'active' | 'warning' | 'error';
-  lastSync?: string;
+// Map source names to the env var that provides their credential
+const SOURCE_CREDENTIAL_ENV: Record<string, string> = {
+  linear: 'LINEAR_API_KEY',
+  github: 'GITHUB_TOKEN',
+};
+
+function hasCredential(sourceName: string): boolean {
+  const envVar = SOURCE_CREDENTIAL_ENV[sourceName];
+  return envVar ? !!process.env[envVar] : false;
+}
+
+function maskCredential(value: string): string {
+  if (value.length <= 6) return '***';
+  return `${value.substring(0, 6)}***`;
 }
 
 async function listSources(): Promise<void> {
-  const config = await loadConfig();
+  const fileConfig = await loadConfig();
+  const config = mergeConfig(fileConfig, {});
   
   if (!config || !config.sources || Object.keys(config.sources).length === 0) {
     ui.log.info('No sources configured');
@@ -23,28 +33,34 @@ async function listSources(): Promise<void> {
   
   console.log(chalk.bold('\nConfigured Sources:\n'));
   
-  const table = ui.table(['Source', 'Type', 'Status', 'Config']);
+  const table = ui.table(['Source', 'Type', 'Credentials', 'Status']);
   
   for (const [name, sourceConfig] of Object.entries(config.sources)) {
     const type = sourceConfig.type || 'Unknown';
-    const hasAuth = sourceConfig.apiKey || sourceConfig.token ? ui.success : chalk.yellow('⚠');
-    const status = sourceConfig.apiKey || sourceConfig.token ? 'Configured' : 'Missing credentials';
+    const envVar = SOURCE_CREDENTIAL_ENV[name];
+    const hasCred = hasCredential(name);
+    const credIcon = hasCred ? ui.success : chalk.yellow('⚠');
+    const status = hasCred
+      ? `${envVar} set`
+      : envVar ? `Set ${envVar} in .env` : 'N/A';
     
     table.push([
       name,
       type,
-      hasAuth,
-      status
+      credIcon,
+      status,
     ]);
   }
   
   console.log(table.toString());
   console.log();
+  console.log(chalk.dim('Credentials are read from environment variables / .env file'));
   console.log(chalk.dim('Run \'faros sources get <name>\' for details'));
 }
 
 async function getSource(name: string): Promise<void> {
-  const config = await loadConfig();
+  const fileConfig = await loadConfig();
+  const config = mergeConfig(fileConfig, {});
   
   if (!config || !config.sources || !config.sources[name]) {
     ui.log.error(`Source '${name}' not found`);
@@ -57,11 +73,15 @@ async function getSource(name: string): Promise<void> {
   console.log(chalk.bold(`\nSource: ${name}\n`));
   console.log(`Type: ${source.type || 'Unknown'}`);
   
-  if (source.apiKey) {
-    console.log(`API Key: ${source.apiKey.substring(0, 10)}***`);
-  }
-  if (source.token) {
-    console.log(`Token: ${source.token.substring(0, 10)}***`);
+  // Show credential status from env vars
+  const envVar = SOURCE_CREDENTIAL_ENV[name];
+  if (envVar) {
+    const value = process.env[envVar];
+    if (value) {
+      console.log(`Credential: ${envVar} = ${maskCredential(value)}`);
+    } else {
+      console.log(chalk.yellow(`Credential: ${envVar} not set (add to .env file)`));
+    }
   }
   
   if (source.syncInterval) {

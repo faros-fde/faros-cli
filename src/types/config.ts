@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 // Config schema
-// NOTE: Sensitive credentials should be in .env, not config files
+// NOTE: All credentials (API keys, tokens) MUST be in .env or env vars, NOT in config files.
 export const ConfigSchema = z.object({
   // API Configuration (can be in config file)
   url: z.string().url().default('https://prod.api.faros.ai'),
@@ -9,20 +9,29 @@ export const ConfigSchema = z.object({
   stagingGraph: z.string().optional(),
   origin: z.string().default('faros-cli'),
   
-  // Credentials (prefer .env over config file)
-  apiKey: z.string().optional(), // Prefer FAROS_API_KEY env var
+  // Credentials - populated at runtime from env vars / CLI flags only.
+  // Not read from config file. Set FAROS_API_KEY in .env or environment.
+  apiKey: z.string().optional(),
   
-  // Data Sources (credentials should be in .env)
+  // Data Sources
+  // Credentials (apiKey, token) are injected at runtime from env vars / .env only.
   sources: z.record(z.object({
     type: z.string().optional(),
-    apiKey: z.string().optional(), // Prefer SOURCE_API_KEY env var
-    token: z.string().optional(), // Prefer SOURCE_TOKEN env var
     bucket: z.string().optional(), // S3 bucket name
     region: z.string().optional(), // S3 region
     prefix: z.string().optional(), // S3 prefix
     pattern: z.string().optional(), // S3 pattern
     syncInterval: z.string().optional(),
     streams: z.array(z.string()).optional(),
+    // Linear-specific settings
+    cutoffDays: z.number().optional(),
+    startDate: z.string().optional(),
+    endDate: z.string().optional(),
+    // Docker image overrides
+    srcImage: z.string().optional(),
+    dstImage: z.string().optional(),
+    // Connection settings
+    connectionName: z.string().optional(),
   })).optional().nullable(),
   
   // Defaults
@@ -35,8 +44,6 @@ export const ConfigSchema = z.object({
   // Logging
   logs: z.object({
     level: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
-    directory: z.string().optional(),
-    retention: z.string().optional(),
   }).optional(),
 });
 
@@ -83,4 +90,23 @@ export interface SyncCICDOptions extends BaseCommandOptions {
   deployStartTime?: string;
   deployEndTime?: string;
   artifact?: string;
+}
+
+export interface SyncLinearOptions extends BaseCommandOptions {
+  linearApiKey?: string;
+  cutoffDays?: number;
+  startDate?: string;
+  endDate?: string;
+  streams?: string;
+  fullRefresh?: boolean;
+  connectionName?: string;
+  checkConnection?: boolean;
+  stateFile?: string;
+  srcImage?: string;
+  dstImage?: string;
+  keepContainers?: boolean;
+  logLevel?: string;
+  rawMessages?: boolean;
+  noSrcPull?: boolean;
+  noDstPull?: boolean;
 }

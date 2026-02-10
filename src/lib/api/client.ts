@@ -4,7 +4,7 @@ import { Config } from '../../types/config';
 
 export function createClient(config: Config): AxiosInstance {
   if (!config.apiKey) {
-    throw new Error('Faros API key is required. Set via --api-key, FAROS_API_KEY env var, or config file');
+    throw new Error('Faros API key is required. Set via --api-key flag or FAROS_API_KEY in .env / environment');
   }
   
   const client = axios.create({

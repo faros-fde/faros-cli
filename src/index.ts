@@ -7,6 +7,7 @@ import { syncCommand } from './commands/sync';
 import { sourcesCommand } from './commands/sources';
 import { logsCommand } from './commands/logs';
 import { ui } from './lib/ui';
+import { initLogger } from './lib/logger';
 
 const pkg = require('../package.json');
 
@@ -37,6 +38,12 @@ ${chalk.bold.blue('Faros CLI')} - Instrumentation & Data Sync
 `)
     .addHelpText('after', `
 ${chalk.bold('Quick Start:')}
+  ${chalk.dim('# Sync Linear data (issues, projects, teams, etc.)')}
+  $ faros sync linear
+  
+  ${chalk.dim('# Sync only specific Linear streams')}
+  $ faros sync linear --streams issues,projects
+  
   ${chalk.dim('# Sync test results')}
   $ faros sync tests test-results/*.xml --source "Jenkins" --commit "GitHub://org/repo/abc"
   
@@ -62,6 +69,11 @@ ${chalk.bold('Support:')} https://community.faros.ai
     .option('--quiet', 'Minimal output')
     .option('--json', 'Output JSON (for scripting)')
     .option('--no-color', 'Disable colors');
+
+  // Init file logger (debug level if --debug is present, else info)
+  const debugFlag = process.argv.includes('--debug') || process.argv.includes('-d');
+  const log = initLogger(debugFlag ? 'debug' : 'info');
+  log.info({ version: pkg.version, argv: process.argv.slice(2) }, 'faros-cli started');
   
   // Register commands
   program.addCommand(syncCommand());

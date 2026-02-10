@@ -74,13 +74,25 @@ export function mergeConfig(
     ...fileConfig,
   };
   
-  // Credentials from environment variables (highest priority for secrets)
-  if (envVars.FAROS_API_KEY) merged.apiKey = envVars.FAROS_API_KEY;
-  if (envVars.LINEAR_API_KEY && merged.sources?.linear) {
-    merged.sources.linear.apiKey = envVars.LINEAR_API_KEY;
+  // Strip any credentials that may have been placed in the config file.
+  // Credentials must come from env vars / .env only.
+  delete merged.apiKey;
+  if (merged.sources) {
+    for (const source of Object.values(merged.sources) as any[]) {
+      delete source?.apiKey;
+      delete source?.token;
+    }
   }
-  if (envVars.GITHUB_TOKEN && merged.sources?.github) {
-    merged.sources.github.token = envVars.GITHUB_TOKEN;
+
+  // Credentials from environment variables / .env file only
+  if (envVars.FAROS_API_KEY) merged.apiKey = envVars.FAROS_API_KEY;
+  if (envVars.LINEAR_API_KEY) {
+    if (!merged.sources) merged.sources = {};
+    if (!merged.sources.linear) merged.sources.linear = { type: 'Linear' };
+  }
+  if (envVars.GITHUB_TOKEN) {
+    if (!merged.sources) merged.sources = {};
+    if (!merged.sources.github) merged.sources.github = { type: 'GitHub' };
   }
   
   // AWS credentials from environment
