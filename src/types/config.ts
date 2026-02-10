@@ -23,7 +23,7 @@ export const ConfigSchema = z.object({
     pattern: z.string().optional(), // S3 pattern
     syncInterval: z.string().optional(),
     streams: z.array(z.string()).optional(),
-  })).optional(),
+  })).optional().nullable(),
   
   // Defaults
   defaults: z.object({

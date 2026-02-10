@@ -30,7 +30,7 @@ async function main() {
   
   program
     .name('faros')
-    .description('Modern CLI for Faros AI - sync data, manage sources, view logs')
+    .description('CLI for Faros AI - sync data, manage sources, view logs')
     .version(pkg.version)
     .addHelpText('before', `
 ${chalk.bold.blue('Faros CLI')} - Instrumentation & Data Sync
