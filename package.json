@@ -1,6 +1,6 @@
 {
   "name": "@faros-fde-sandbox/cli",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "CLI for Faros AI - sync data, manage sources, view logs",
   "keywords": [
     "faros",
