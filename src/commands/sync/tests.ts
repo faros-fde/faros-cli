@@ -1,0 +1,368 @@
+import { Command, Option } from 'commander';
+import { parse } from 'test-results-parser';
+import { v4 as uuidv4 } from 'uuid';
+import pLimit from 'p-limit';
+import chalk from 'chalk';
+import { loadConfig, mergeConfig, getStagingGraph } from '../../config/loader';
+import { createClient, sendEvent } from '../../lib/api/client';
+import { ui, isCI } from '../../lib/ui';
+import { SyncTestsOptions } from '../../types/config';
+import {
+  createS3Client,
+  parseS3Uri,
+  listS3Objects,
+  downloadS3Objects,
+  cleanupTempFiles,
+} from '../../lib/sources/s3';
+
+enum TestResultsFormat {
+  Cucumber = 'cucumber',
+  JUnit = 'junit',
+  Mocha = 'mocha',
+  TestNG = 'testng',
+  xUnit = 'xunit',
+}
+
+enum TestType {
+  Functional = 'Functional',
+  Integration = 'Integration',
+  Manual = 'Manual',
+  Performance = 'Performance',
+  Regression = 'Regression',
+  Security = 'Security',
+  Unit = 'Unit',
+  Custom = 'Custom',
+}
+
+function convertStatus(status: string): string {
+  switch (status.toLowerCase()) {
+    case 'success':
+    case 'succeed':
+    case 'succeeded':
+    case 'pass':
+    case 'passed':
+      return 'Success';
+    case 'skip':
+    case 'skipped':
+    case 'disable':
+    case 'disabled':
+      return 'Skipped';
+    case 'fail':
+    case 'failed':
+    case 'failure':
+      return 'Failure';
+    default:
+      return 'Custom';
+  }
+}
+
+function parseTime(time: string): string {
+  if (time.toLowerCase() === 'now') {
+    return new Date().toISOString();
+  }
+  if (/^\d+$/.test(time)) {
+    return new Date(parseInt(time, 10)).toISOString();
+  }
+  return time;
+}
+
+async function processTestResults(
+  paths: string[],
+  options: SyncTestsOptions
+): Promise<void> {
+  const fileConfig = await loadConfig();
+  const config = mergeConfig(fileConfig, options);
+  
+  // Determine if paths contain S3 URIs
+  const hasS3Uri = paths.some(p => p.startsWith('s3://'));
+  let files: string[] = [];
+  let tempFiles: string[] = [];
+  
+  try {
+    // Handle S3 files
+    if (hasS3Uri) {
+      const spinner = ui.spinner('Fetching files from S3...');
+      spinner.start();
+      
+      const s3Uri = parseS3Uri(paths[0]); // Assume first path is S3 URI
+      const s3Client = createS3Client({
+        region: options.s3Region,
+        accessKeyId: options.s3AccessKeyId,
+        secretAccessKey: options.s3SecretAccessKey,
+        profile: options.s3Profile,
+      });
+      
+      // Determine if it's a single file or directory
+      const isSingleFile = s3Uri.key.endsWith('.xml') || s3Uri.key.includes('.');
+      let s3Keys: string[] = [];
+      
+      if (isSingleFile) {
+        s3Keys = [s3Uri.key];
+      } else {
+        s3Keys = await listS3Objects(
+          s3Client,
+          s3Uri.bucket,
+          s3Uri.key,
+          options.pattern
+        );
+      }
+      
+      spinner.succeed(`Found ${s3Keys.length} file(s) in S3`);
+      
+      if (s3Keys.length === 0) {
+        ui.log.warning('No files found matching criteria');
+        return;
+      }
+      
+      const downloadSpinner = ui.spinner(`Downloading ${s3Keys.length} file(s)...`);
+      downloadSpinner.start();
+      
+      tempFiles = await downloadS3Objects(s3Client, s3Uri.bucket, s3Keys);
+      files = tempFiles;
+      
+      downloadSpinner.succeed(`Downloaded ${files.length} file(s)`);
+    } else {
+      // Local files
+      files = paths.flatMap(p => p.split(',').map(v => v.trim()));
+    }
+    
+    // Parse test results
+    const parseSpinner = ui.spinner('Parsing test results...');
+    parseSpinner.start();
+    
+    const results = parse({
+      type: options.format as any || 'junit',
+      files,
+    });
+    
+    parseSpinner.succeed(
+      `Parsed ${results.suites.length} test suite(s) with ${results.total} total test(s)`
+    );
+    
+    // Validation mode
+    if (options.validate) {
+      ui.log.success('All data is valid');
+      console.log();
+      console.log(chalk.dim('Would create:'));
+      console.log(chalk.dim(`  • ${results.suites.length} qa_TestExecution records`));
+      console.log(chalk.dim(`  • ${results.total} qa_TestCase records`));
+      console.log(chalk.dim(`  • ${results.total} qa_TestCaseResult records`));
+      console.log();
+      console.log(chalk.dim('Run without --validate to sync to Faros'));
+      return;
+    }
+    
+    // Preview mode
+    if (options.preview) {
+      console.log();
+      console.log(chalk.bold('Sample records (first 2):'));
+      console.log();
+      
+      const sampleSuite = results.suites[0];
+      if (sampleSuite) {
+        console.log(chalk.blue('qa_TestExecution:'));
+        console.log('  {');
+        console.log(`    "suite": "${sampleSuite.name}",`);
+        console.log(`    "source": "${options.source}",`);
+        console.log(`    "type": "${options.type || 'Unit'}",`);
+        console.log(`    "status": "${convertStatus(sampleSuite.status)}",`);
+        console.log(`    "stats": { "passed": ${sampleSuite.passed}, "failed": ${sampleSuite.failed}, "total": ${sampleSuite.total} }`);
+        console.log('  }');
+        console.log();
+        
+        const sampleCase = sampleSuite.cases[0];
+        if (sampleCase) {
+          console.log(chalk.blue('qa_TestCase:'));
+          console.log('  {');
+          console.log(`    "name": "${sampleCase.name}",`);
+          console.log(`    "type": "${options.type || 'Unit'}",`);
+          console.log(`    "status": "${convertStatus(sampleCase.status)}"`);
+          console.log('  }');
+        }
+      }
+      
+      console.log();
+      console.log(chalk.dim('Run with --dry-run to sync to staging for full verification'));
+      return;
+    }
+    
+    // Determine target graph
+    let targetGraph = config.graph;
+    if (options.dryRun) {
+      targetGraph = getStagingGraph(config);
+      ui.log.warning(`Dry-run mode: syncing to staging graph '${targetGraph}'`);
+      console.log();
+    }
+    
+    // Create API client
+    const client = createClient(config);
+    
+    // Upload test results
+    const progressBar = ui.progressBar(results.suites.length, {
+      format: `${chalk.blue('Uploading')} |{bar}| {percentage}% | {value}/{total} suites`,
+    });
+    
+    progressBar.start(results.suites.length, 0);
+    
+    const limit = pLimit(options.concurrency || config.defaults?.concurrency || 8);
+    const errors: Array<{ suite: string; error: string }> = [];
+    let uploaded = 0;
+    
+    const uploadPromises = results.suites.map(suite =>
+      limit(async () => {
+        try {
+          const cases = suite.cases.map(tc => {
+            const steps = tc.steps.map(s => ({
+              id: uuidv4(),
+              name: s.name,
+              status: convertStatus(s.status),
+              statusDetails:
+                s.failure && s.stack_trace
+                  ? `${s.failure} : ${s.stack_trace}`
+                  : s.failure ?? s.stack_trace,
+            }));
+            
+            return {
+              id: uuidv4(),
+              name: tc.name,
+              type: options.type || 'Unit',
+              status: convertStatus(tc.status),
+              statusDetails:
+                tc.failure && tc.stack_trace
+                  ? `${tc.failure} : ${tc.stack_trace}`
+                  : tc.failure ?? tc.stack_trace,
+              ...(steps.length > 0 ? { step: steps } : {}),
+            };
+          });
+          
+          const data = {
+            type: 'TestExecution',
+            version: '0.0.1',
+            origin: config.origin,
+            data: {
+              commit: options.commit ? { uri: options.commit } : undefined,
+              test: {
+                id: uuidv4(),
+                suite: suite.name,
+                source: options.source || config.defaults?.testSource || 'Unknown',
+                type: options.type || config.defaults?.testType || 'Unit',
+                status: convertStatus(suite.status),
+                statusDetails: suite.status,
+                stats: {
+                  success: suite.passed,
+                  failure: suite.failed,
+                  skipped: suite.skipped,
+                  unknown: 0,
+                  custom: 0,
+                  total: suite.total,
+                },
+                startTime: (suite as any).timestamp || parseTime(options.testStart || 'now'),
+                endTime: (suite as any).timestamp
+                  ? new Date(Date.parse((suite as any).timestamp) + suite.duration).toISOString()
+                  : parseTime(options.testEnd || 'now'),
+                ...(cases.length > 0 ? { case: cases } : {}),
+              },
+            },
+          };
+          
+          await sendEvent(client, targetGraph, data);
+          uploaded++;
+          progressBar.update(uploaded);
+        } catch (error: any) {
+          errors.push({
+            suite: suite.name,
+            error: error.message,
+          });
+        }
+      })
+    );
+    
+    await Promise.all(uploadPromises);
+    progressBar.stop();
+    
+    console.log();
+    
+    if (errors.length > 0) {
+      ui.log.error(`Failed to upload ${errors.length} test suite(s)`);
+      errors.slice(0, 5).forEach(e => {
+        console.error(chalk.dim(`  ${e.suite}: ${e.error}`));
+      });
+      if (errors.length > 5) {
+        console.error(chalk.dim(`  ... and ${errors.length - 5} more`));
+      }
+      process.exit(1);
+    }
+    
+    ui.log.success(`Synced ${uploaded} test suite(s)${options.dryRun ? ' to staging graph' : ''}`);
+    
+    if (options.dryRun) {
+      console.log(chalk.dim(`  Graph: ${targetGraph}`));
+      console.log(chalk.dim(`  View in Faros: ${config.url.replace('/api', '')}/${targetGraph}/qa`));
+      console.log();
+      console.log(chalk.dim('To sync to production, run without --dry-run flag'));
+    }
+  } finally {
+    // Cleanup temp files
+    if (tempFiles.length > 0) {
+      cleanupTempFiles(tempFiles);
+    }
+  }
+}
+
+export function syncTestsCommand(): Command {
+  const cmd = new Command('tests');
+  
+  cmd
+    .description('Sync test results (JUnit/TestNG/xUnit/Cucumber/Mocha) to Faros')
+    .argument('<paths...>', 'Path(s) to test result files or S3 URI (s3://bucket/path/)')
+    .addOption(
+      new Option('--format <format>', 'Test results format')
+        .choices(Object.values(TestResultsFormat))
+        .default('junit')
+    )
+    .addOption(
+      new Option('--type <type>', 'Test type')
+        .choices(Object.values(TestType))
+        .default('Unit')
+    )
+    .option('--source <source>', 'Test source system (e.g. Jenkins, GitHub-Actions)')
+    .option('--commit <uri>', 'Commit URI: <source>://<org>/<repo>/<sha>')
+    .option('--test-start <time>', 'Test start time (ISO-8601, epoch millis, or "Now")', 'now')
+    .option('--test-end <time>', 'Test end time (ISO-8601, epoch millis, or "Now")', 'now')
+    .option('--concurrency <number>', 'Number of concurrent uploads', parseInt, 8)
+    .option('--s3-region <region>', 'AWS region for S3')
+    .option('--s3-profile <profile>', 'AWS profile name')
+    .option('--s3-access-key-id <key>', 'AWS access key ID')
+    .option('--s3-secret-access-key <secret>', 'AWS secret access key')
+    .option('--pattern <regex>', 'Regex pattern to filter S3 objects')
+    .option('--validate', 'Validate only, don\'t send to Faros (fast, offline)')
+    .option('--preview', 'Show sample records without sending')
+    .option('--dry-run', 'Sync to staging graph for verification')
+    .addHelpText('after', `
+Examples:
+  # Sync local test results
+  $ faros sync tests test-results/*.xml --source "Jenkins" --commit "GitHub://org/repo/abc"
+  
+  # Sync from S3
+  $ faros sync tests s3://bucket/junit/ --pattern ".*\\.xml$" --source "Jenkins"
+  
+  # Validate before syncing
+  $ faros sync tests *.xml --validate
+  
+  # Dry run to staging
+  $ faros sync tests *.xml --dry-run
+    `)
+    .action(async (paths, options) => {
+      try {
+        await processTestResults(paths, options);
+      } catch (error: any) {
+        ui.log.error(error.message);
+        if (options.debug) {
+          console.error(error.stack);
+        }
+        process.exit(1);
+      }
+    });
+  
+  return cmd;
+}

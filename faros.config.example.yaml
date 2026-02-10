@@ -1,0 +1,146 @@
+# Faros CLI Configuration
+# 
+# This file contains non-sensitive configuration for the Faros CLI.
+# Store credentials in .env file (never commit that file!)
+#
+# See CONFIGURATION.md for detailed documentation.
+
+# ==============================================================================
+# Core Settings
+# ==============================================================================
+
+# Faros API URL
+# Default: https://prod.api.faros.ai
+# Override with: FAROS_URL environment variable
+url: https://prod.api.faros.ai
+
+# Target graph name where data will be synced
+# Default: default
+# Override with: FAROS_GRAPH environment variable or --graph flag
+graph: default
+
+# Staging graph name used for dry-run testing
+# Default: {graph}-staging
+# This is where --dry-run flag will sync data for verification
+stagingGraph: default-staging
+
+# Origin identifier for events
+# This helps identify the source of data in Faros
+# Default: faros-cli
+# Override with: FAROS_ORIGIN environment variable
+# Examples: "my-company-ci", "jenkins-prod", "github-actions"
+origin: my-company-ci
+
+# ==============================================================================
+# Data Sources
+# ==============================================================================
+# Configure data sources you want to sync.
+# Credentials should be in .env file (LINEAR_API_KEY, GITHUB_TOKEN, etc.)
+
+sources:
+  # Linear - Project management and issue tracking
+  linear:
+    type: Linear
+    # How often to sync (not yet implemented, for future use)
+    syncInterval: 1h
+    # Streams to sync (optional, defaults to all)
+    streams:
+      - issues
+      - projects
+      - teams
+      - users
+  
+  # GitHub - Source code and development activity
+  github:
+    type: GitHub
+    syncInterval: 30m
+    # GitHub Token should be in .env as GITHUB_TOKEN
+  
+  # S3 Test Results - Historical test data from S3 buckets
+  s3-tests:
+    type: S3
+    # S3 bucket name (non-sensitive, can be in config)
+    bucket: my-test-results-bucket
+    # AWS region (non-sensitive)
+    region: us-east-1
+    # Optional: S3 prefix to filter objects
+    prefix: junit/
+    # Optional: Regex pattern to match S3 object keys
+    # Example: ".*\\.xml$" for XML files only
+    pattern: ".*\\.xml$"
+    # AWS credentials should be in .env:
+    #   AWS_ACCESS_KEY_ID
+    #   AWS_SECRET_ACCESS_KEY
+
+# ==============================================================================
+# Default Values
+# ==============================================================================
+# Set default values for common command options
+
+defaults:
+  # Default test source system
+  # Used when --source flag is not provided
+  # Examples: "Jenkins", "GitHub-Actions", "GitLab-CI", "CircleCI"
+  testSource: Jenkins
+  
+  # Default test type
+  # Used when --type flag is not provided
+  # Options: Unit, Integration, Functional, Performance, Security, Regression
+  testType: Unit
+  
+  # Number of concurrent uploads for test results
+  # Higher = faster uploads, but may hit API rate limits
+  # Recommended: 8-16 for most use cases
+  concurrency: 8
+
+# ==============================================================================
+# Logging
+# ==============================================================================
+# Configure CLI logging behavior
+
+logs:
+  # Log level: debug, info, warn, error
+  # Default: info
+  level: info
+  
+  # Directory to store log files
+  # Default: ~/.faros/logs
+  # The CLI will create this directory if it doesn't exist
+  directory: ~/.faros/logs
+  
+  # How long to keep log files
+  # Format: <number><unit> where unit is d (days), h (hours), m (minutes)
+  # Examples: "7d", "24h", "168h"
+  # Default: 7d (7 days)
+  retention: 7d
+
+# ==============================================================================
+# Examples
+# ==============================================================================
+#
+# Minimal Configuration:
+# ----------------------
+# url: https://prod.api.faros.ai
+# graph: production
+#
+# Multi-Environment Setup:
+# -------------------------
+# Use different config files for each environment:
+#   - faros.config.dev.yaml
+#   - faros.config.staging.yaml
+#   - faros.config.prod.yaml
+#
+# Then use: cp faros.config.prod.yaml faros.config.yaml
+#
+# CI/CD Configuration:
+# --------------------
+# Keep this file in git, but override settings with env vars:
+#   FAROS_GRAPH=production
+#   FAROS_ORIGIN=github-actions-prod
+#
+# Team Collaboration:
+# -------------------
+# This file can be committed to git and shared with your team.
+# Each developer should have their own .env file with credentials.
+#
+# ==============================================================================

@@ -1,0 +1,22 @@
+node_modules/
+lib/
+*.log
+.DS_Store
+dist/
+coverage/
+
+# Credentials - never commit!
+.env
+.env.local
+.env.*.local
+
+# Config files (may contain sensitive data)
+faros.config.yaml
+faros.config.yml
+faros.config.json
+.farosrc.yaml
+.farosrc.yml
+.farosrc.json
+
+# AWS credentials
+.aws/
