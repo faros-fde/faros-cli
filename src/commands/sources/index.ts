@@ -16,7 +16,7 @@ async function listSources(): Promise<void> {
   if (!config || !config.sources || Object.keys(config.sources).length === 0) {
     ui.log.info('No sources configured');
     console.log();
-    console.log(chalk.dim('Configure sources in .farosrc.json or use:'));
+    console.log(chalk.dim('Configure sources in faros.config.yaml or use:'));
     console.log(chalk.dim('  faros config init'));
     return;
   }
