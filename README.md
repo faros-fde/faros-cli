@@ -4,6 +4,33 @@
 
 CLI for Faros AI - sync data, manage sources, view logs.
 
+## Table of Contents
+
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Commands](#commands)
+  - [faros sync](#faros-sync)
+    - [faros sync tests](#faros-sync-tests)
+    - [faros sync ci-cd](#faros-sync-ci-cd)
+  - [faros sources](#faros-sources)
+  - [faros logs](#faros-logs)
+- [Configuration](#configuration)
+  - [Environment Variables](#environment-variables)
+  - [Configuration File](#configuration-file)
+  - [Configuration Priority](#configuration-priority)
+  - [CI/CD Environments](#cicd-environments)
+- [Global Options](#global-options)
+- [Dry Run & Validation](#dry-run--validation)
+- [CI/CD Integration](#cicd-integration)
+  - [GitHub Actions](#github-actions)
+  - [Jenkins](#jenkins)
+  - [GitLab CI](#gitlab-ci)
+  - [CircleCI](#circleci)
+  - [Bitbucket Pipelines](#bitbucket-pipelines)
+- [URI Formats](#uri-formats)
+- [Development](#development)
+- [License](#license)
+
 ## Installation
 
 ```bash
@@ -171,31 +198,53 @@ faros logs --since "2024-01-15T10:00:00Z"
 
 The CLI uses a two-file configuration approach:
 
-### 1. Credentials (`.env`)
+### Environment Variables
 
-Store sensitive credentials in a `.env` file (never commit this!):
+The CLI can be configured entirely through environment variables, which is ideal for CI/CD pipelines where `.env` files are not available.
 
-```bash
-# Required
-FAROS_API_KEY=your_faros_api_key_here
+#### Required Environment Variables
 
-# Optional overrides
-FAROS_URL=https://prod.api.faros.ai
-FAROS_GRAPH=default
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `FAROS_API_KEY` | Faros API key (required for all operations) | `your_faros_api_key_here` |
 
-# Data source credentials
-LINEAR_API_KEY=your_linear_api_key
-GITHUB_TOKEN=your_github_token
+#### Optional Faros Configuration
 
-# AWS credentials (for S3 test results)
-AWS_ACCESS_KEY_ID=your_aws_access_key
-AWS_SECRET_ACCESS_KEY=your_aws_secret_key
-AWS_REGION=us-east-1
-```
+| Variable | Description | Default | Example |
+|----------|-------------|---------|---------|
+| `FAROS_URL` | Faros API URL | `https://prod.api.faros.ai` | `https://prod.api.faros.ai` |
+| `FAROS_GRAPH` | Target graph name | `default` | `my-graph` |
+| `FAROS_STAGING_GRAPH` | Staging graph for dry runs | `default-staging` | `my-graph-staging` |
+| `FAROS_ORIGIN` | Origin identifier for synced data | - | `my-company-ci` |
 
-See `.env.example` for a complete template.
+#### Data Source Credentials
 
-### 2. Configuration (`faros.config.yaml`)
+| Variable | Description | Used For |
+|----------|-------------|----------|
+| `LINEAR_API_KEY` | Linear API key | Syncing Linear issues |
+| `GITHUB_TOKEN` | GitHub personal access token | GitHub integration |
+| `GITLAB_TOKEN` | GitLab personal access token | GitLab integration |
+| `JIRA_TOKEN` | Jira API token | Jira integration |
+| `JIRA_USERNAME` | Jira username | Jira integration |
+| `JIRA_URL` | Jira instance URL | Jira integration |
+
+#### AWS Credentials (for S3 Test Results)
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `AWS_ACCESS_KEY_ID` | AWS access key | `AKIAIOSFODNN7EXAMPLE` |
+| `AWS_SECRET_ACCESS_KEY` | AWS secret key | `wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY` |
+| `AWS_REGION` | AWS region | `us-east-1` |
+| `AWS_SESSION_TOKEN` | AWS session token (for temporary credentials) | - |
+
+#### Logging and Debug
+
+| Variable | Description | Values | Default |
+|----------|-------------|--------|---------|
+| `FAROS_LOG_LEVEL` | Log level | `debug`, `info`, `warn`, `error` | `info` |
+| `FAROS_DEBUG` | Enable debug mode | `true`, `false` | `false` |
+
+### Configuration File
 
 Store non-sensitive configuration in `faros.config.yaml`:
 
@@ -206,7 +255,7 @@ graph: default
 stagingGraph: default-staging
 origin: my-company-ci
 
-# Data sources (credentials in .env)
+# Data sources (credentials in .env or environment variables)
 sources:
   linear:
     type: Linear
@@ -236,6 +285,86 @@ Configuration is loaded in this order (highest priority first):
 4. **Defaults**: Built-in defaults
 
 **Config file search order**: `faros.config.yaml` → `faros.config.yml` → `faros.config.json` → `.farosrc.*`
+
+### CI/CD Environments
+
+In CI/CD pipelines where `.env` files cannot be used, configure the CLI entirely through environment variables stored as secrets in your CI/CD platform.
+
+#### Setting Up Environment Variables
+
+**GitHub Actions:**
+1. Go to repository Settings → Secrets and variables → Actions
+2. Add `FAROS_API_KEY` as a repository secret
+3. Reference in workflows using `${{ secrets.FAROS_API_KEY }}`
+
+**GitLab CI:**
+1. Go to Settings → CI/CD → Variables
+2. Add `FAROS_API_KEY` as a masked and protected variable
+3. Variables are automatically available in pipeline jobs
+
+**Jenkins:**
+1. Go to Credentials → System → Global credentials
+2. Add secret text with ID `faros-api-key`
+3. Reference using `credentials('faros-api-key')`
+
+**CircleCI:**
+1. Go to Project Settings → Environment Variables
+2. Add `FAROS_API_KEY`
+3. Variables are automatically available in jobs
+
+**Bitbucket Pipelines:**
+1. Go to Repository settings → Pipelines → Repository variables
+2. Add `FAROS_API_KEY` as a secured variable
+3. Variables are automatically available in pipeline steps
+
+#### Example: Minimal CI/CD Configuration
+
+For most CI/CD use cases, only `FAROS_API_KEY` is required:
+
+```bash
+# Set this as a secret in your CI/CD platform
+FAROS_API_KEY=your_api_key_here
+
+# Optional: Override defaults
+FAROS_GRAPH=production
+FAROS_URL=https://prod.api.faros.ai
+```
+
+Then in your pipeline:
+
+```bash
+# Environment variables are automatically picked up
+faros sync tests test-results/*.xml \
+  --source "Jenkins" \
+  --commit "GitHub://myorg/myrepo/$COMMIT_SHA"
+```
+
+#### Example: Full Configuration via Environment Variables
+
+For advanced setups, all configuration can be provided via environment variables:
+
+```bash
+# Required
+FAROS_API_KEY=your_api_key_here
+
+# Faros configuration
+FAROS_URL=https://prod.api.faros.ai
+FAROS_GRAPH=production
+FAROS_STAGING_GRAPH=production-staging
+FAROS_ORIGIN=github-actions
+
+# AWS (for S3 test results)
+AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+AWS_REGION=us-east-1
+
+# Data sources
+LINEAR_API_KEY=your_linear_key
+GITHUB_TOKEN=your_github_token
+
+# Logging
+FAROS_LOG_LEVEL=info
+```
 
 ## Global Options
 
@@ -321,6 +450,8 @@ Run with --dry-run to sync to staging
 
 ## CI/CD Integration
 
+The Faros CLI integrates seamlessly with CI/CD platforms using environment variables. Store `FAROS_API_KEY` as a secret in your CI/CD platform and reference it in your pipeline configuration.
+
 ### GitHub Actions
 
 ```yaml
@@ -350,6 +481,12 @@ environment {
   FAROS_API_KEY = credentials('faros-api-key')
 }
 
+stage('Test') {
+  steps {
+    sh 'npm test'
+  }
+}
+
 stage('Sync Results') {
   steps {
     sh '''
@@ -359,6 +496,123 @@ stage('Sync Results') {
     '''
   }
 }
+
+stage('Report Build Status') {
+  steps {
+    sh '''
+      faros sync ci-cd build \
+        --status Success \
+        --commit "GitHub://org/repo/${GIT_COMMIT}" \
+        --run "Jenkins://org/pipeline/${BUILD_ID}"
+    '''
+  }
+}
+```
+
+### GitLab CI
+
+```yaml
+test:
+  stage: test
+  script:
+    - npm test
+  artifacts:
+    reports:
+      junit: test-results/*.xml
+
+sync_results:
+  stage: deploy
+  script:
+    - npm install -g @faros-fde-sandbox/cli
+    - |
+      faros sync tests test-results/*.xml \
+        --source "GitLab-CI" \
+        --commit "GitLab://${CI_PROJECT_PATH}/${CI_COMMIT_SHA}"
+  variables:
+    FAROS_API_KEY: $FAROS_API_KEY
+  when: always
+
+report_build:
+  stage: deploy
+  script:
+    - |
+      faros sync ci-cd build \
+        --status Success \
+        --commit "GitLab://${CI_PROJECT_PATH}/${CI_COMMIT_SHA}" \
+        --run "GitLab-CI://${CI_PROJECT_PATH}/${CI_PIPELINE_ID}"
+  variables:
+    FAROS_API_KEY: $FAROS_API_KEY
+```
+
+### CircleCI
+
+```yaml
+version: 2.1
+
+jobs:
+  test:
+    docker:
+      - image: cimg/node:18.0
+    steps:
+      - checkout
+      - run:
+          name: Run Tests
+          command: npm test
+      - store_test_results:
+          path: test-results
+      - run:
+          name: Sync Test Results to Faros
+          when: always
+          command: |
+            npx @faros-fde-sandbox/cli sync tests test-results/*.xml \
+              --source "CircleCI" \
+              --commit "GitHub://${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/${CIRCLE_SHA1}"
+          environment:
+            FAROS_API_KEY: ${FAROS_API_KEY}
+      - run:
+          name: Report Build Status
+          command: |
+            npx @faros-fde-sandbox/cli sync ci-cd build \
+              --status Success \
+              --commit "GitHub://${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/${CIRCLE_SHA1}" \
+              --run "CircleCI://${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/${CIRCLE_BUILD_NUM}"
+          environment:
+            FAROS_API_KEY: ${FAROS_API_KEY}
+
+workflows:
+  test-and-sync:
+    jobs:
+      - test
+```
+
+### Bitbucket Pipelines
+
+```yaml
+pipelines:
+  default:
+    - step:
+        name: Test
+        script:
+          - npm test
+        artifacts:
+          - test-results/**
+    - step:
+        name: Sync Results to Faros
+        script:
+          - npm install -g @faros-fde-sandbox/cli
+          - |
+            faros sync tests test-results/*.xml \
+              --source "Bitbucket-Pipelines" \
+              --commit "Bitbucket://${BITBUCKET_REPO_FULL_NAME}/${BITBUCKET_COMMIT}"
+          - |
+            faros sync ci-cd build \
+              --status Success \
+              --commit "Bitbucket://${BITBUCKET_REPO_FULL_NAME}/${BITBUCKET_COMMIT}" \
+              --run "Bitbucket-Pipelines://${BITBUCKET_REPO_FULL_NAME}/${BITBUCKET_BUILD_NUMBER}"
+        condition:
+          changesets:
+            includePaths:
+              - "**"
 ```
 
 ## URI Formats
