@@ -1,5 +1,7 @@
 # Faros CLI
 
+[![npm version](https://badge.fury.io/js/@faros-fde-sandbox%2Fcli.svg)](https://www.npmjs.com/package/@faros-fde-sandbox/cli)
+
 CLI for Faros AI - sync data, manage sources, view logs.
 
 ## Installation
@@ -410,6 +412,10 @@ npm test
 # Lint
 npm run lint
 ```
+
+### Publishing
+
+See [PUBLISHING.md](PUBLISHING.md) for instructions on publishing new versions to npm.
 
 ## License
 
