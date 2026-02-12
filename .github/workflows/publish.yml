@@ -4,6 +4,22 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      npm_tag:
+        description: 'NPM tag (latest, beta, etc.)'
+        required: false
+        default: 'latest'
+        type: choice
+        options:
+          - latest
+          - beta
+          - alpha
+      dry_run:
+        description: 'Dry run (test without publishing)'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   publish:
@@ -36,10 +52,19 @@ jobs:
       
       - name: Publish to npm
         run: |
-          echo "Publishing @faros-fde-sandbox/cli@1.0.0..."
-          npm publish --access public --verbose
-          echo "Verifying publication..."
-          sleep 5
-          npm view @faros-fde-sandbox/cli version || echo "Warning: Package not found on registry yet"
+          NPM_TAG="${{ github.event.inputs.npm_tag || 'latest' }}"
+          DRY_RUN="${{ github.event.inputs.dry_run || 'false' }}"
+          
+          echo "Publishing @faros-fde-sandbox/cli with tag: $NPM_TAG"
+          
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "DRY RUN MODE - Would publish with: npm publish --access public --tag $NPM_TAG"
+            npm pack
+          else
+            npm publish --access public --tag $NPM_TAG --verbose
+            echo "Verifying publication..."
+            sleep 5
+            npm view @faros-fde-sandbox/cli version || echo "Warning: Package not found on registry yet"
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
