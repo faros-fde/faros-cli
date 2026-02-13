@@ -49,6 +49,7 @@ jobs:
         run: npm run build
       
       - name: Sync test results to Faros
+        if: always()
         env:
           FAROS_API_KEY: ${{ secrets.FAROS_API_KEY }}
         run: |
