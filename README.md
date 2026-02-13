@@ -56,10 +56,8 @@ faros sync ci-cd deploy \
   --commit "GitHub://myorg/myrepo/abc123" \
   --deploy "Kubernetes://myapp/Prod/deploy-789"
 
-# Sync Linear data
-faros sync linear \
-  --linear-api-key lin_api_xxx \
-  --cutoff-days 30
+# Sync Linear data (after setting LINEAR_API_KEY env var)
+faros sync linear --cutoff-days 30
 ```
 
 ## Commands
@@ -133,14 +131,17 @@ Sync Linear issues, projects, teams, and users to Faros.
 
 **Usage:**
 ```bash
-faros sync linear --linear-api-key <key> [options]
+faros sync linear [options]
 ```
 
 **Options:**
-- `--linear-api-key <key>` - Linear API key (or set `LINEAR_API_KEY` env var)
-- `--cutoff-days <days>` - Fetch issues updated in the last N days (default: 90, or from config)
+- `--cutoff-days <days>` - Fetch issues updated in the last N days (default: 90)
 - `--page-size <size>` - Number of records per API call, 1-250 (default: 50)
 - `--preview` - Show sync configuration without executing
+
+**Required Environment Variables:**
+- `LINEAR_API_KEY` - Linear API key (get from https://linear.app/settings/api)
+- `FAROS_API_KEY` - Faros API key
 
 **Configuration Priority:**
 1. CLI options (`--linear-api-key`, `--cutoff-days`)
@@ -150,25 +151,20 @@ faros sync linear --linear-api-key <key> [options]
 
 **Examples:**
 
-Using environment variables (recommended):
+Set environment variables:
 ```bash
 export LINEAR_API_KEY=lin_api_xxx
 export FAROS_API_KEY=your_faros_key
 export FAROS_GRAPH=default
+```
 
+Then run:
+```bash
 faros sync linear
 ```
 
-Using CLI options:
-```bash
-faros sync linear \
-  --linear-api-key lin_api_xxx \
-  --graph default
-```
-
-Using config file (`faros.config.yaml`):
+Using config file (`faros.config.yaml`) for defaults:
 ```yaml
-# Never put API keys here - use environment variables!
 url: https://prod.api.faros.ai
 graph: default
 origin: my-company-ci
@@ -179,11 +175,7 @@ sources:
     pageSize: 100     # Larger page size
 ```
 
-Then run:
-```bash
-export LINEAR_API_KEY=lin_api_xxx
-faros sync linear
-```
+**Note:** Never put API keys in config files! Always use environment variables.
 
 Sync only recent issues (override config):
 ```bash
