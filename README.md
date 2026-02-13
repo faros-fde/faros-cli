@@ -599,6 +599,28 @@ npm run test:ui
 **Continuous Integration:**
 Tests run automatically on every push and pull request via GitHub Actions. Coverage reports are uploaded to Codecov.
 
+### End-to-End Testing
+
+E2E tests validate the full CLI workflow by actually syncing test results to Faros AI.
+
+**Run E2E tests:**
+
+```bash
+# Dry run (staging graph, recommended)
+FAROS_API_KEY=xxx ./scripts/e2e-test-sync.sh
+
+# Production sync (use with caution)
+DRY_RUN=false FAROS_API_KEY=xxx ./scripts/e2e-test-sync.sh
+```
+
+**What's tested:**
+- ✅ Parsing test result files (JUnit, TestNG, Mocha)
+- ✅ Data validation and transformation
+- ✅ API communication with Faros
+- ✅ Error handling and reporting
+
+**See the full guide:** [docs/e2e-testing.md](docs/e2e-testing.md)
+
 ### Publishing
 
 See [PUBLISHING.md](PUBLISHING.md) for instructions on publishing new versions to npm.
