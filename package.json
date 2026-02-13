@@ -1,6 +1,6 @@
 {
   "name": "@faros-fde-sandbox/cli",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "CLI for Faros AI - sync test results and CI/CD events",
   "keywords": [
     "faros",
