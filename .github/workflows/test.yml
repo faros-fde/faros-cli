@@ -62,7 +62,7 @@ jobs:
         run: npm run build
       
       - name: Sync test results to Faros
-        if: matrix.node-version == 20 && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: matrix.node-version == 20
         env:
           FAROS_API_KEY: ${{ secrets.FAROS_API_KEY }}
         run: |
