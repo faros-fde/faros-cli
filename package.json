@@ -1,7 +1,7 @@
 {
   "name": "@faros-fde-sandbox/cli",
   "version": "1.1.1",
-  "description": "CLI for Faros AI - sync data, manage sources, view logs",
+  "description": "CLI for Faros AI - sync test results and CI/CD events",
   "keywords": [
     "faros",
     "observability",
@@ -9,8 +9,8 @@
     "ci-cd",
     "quality",
     "testing",
-    "linear",
-    "github"
+    "junit",
+    "test-results"
   ],
   "homepage": "https://github.com/faros-fde/faros-cli#readme",
   "author": "Faros AI, Inc.",

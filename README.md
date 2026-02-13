@@ -2,18 +2,15 @@
 
 [![npm version](https://badge.fury.io/js/@faros-fde-sandbox%2Fcli.svg)](https://www.npmjs.com/package/@faros-fde-sandbox/cli)
 
-CLI for Faros AI - sync data, manage sources, view logs.
+CLI for Faros AI - sync test results and CI/CD events.
 
 ## Table of Contents
 
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [Commands](#commands)
-  - [faros sync](#faros-sync)
-    - [faros sync tests](#faros-sync-tests)
-    - [faros sync ci-cd](#faros-sync-ci-cd)
-  - [faros sources](#faros-sources)
-  - [faros logs](#faros-logs)
+  - [faros sync tests](#faros-sync-tests)
+  - [faros sync ci-cd](#faros-sync-ci-cd)
 - [Configuration](#configuration)
   - [Environment Variables](#environment-variables)
   - [Configuration File](#configuration-file)
@@ -51,20 +48,16 @@ faros sync ci-cd build \
   --commit "GitHub://myorg/myrepo/abc123" \
   --run "Jenkins://myorg/pipeline/456"
 
-# View logs
-faros logs
-
-# List configured sources
-faros sources list
+# Report deployment status
+faros sync ci-cd deploy \
+  --status Success \
+  --commit "GitHub://myorg/myrepo/abc123" \
+  --deploy "Kubernetes://myapp/Prod/deploy-789"
 ```
 
 ## Commands
 
-### `faros sync`
-
-Sync data from various sources to Faros.
-
-#### `faros sync tests`
+### `faros sync tests`
 
 Sync test results (JUnit, TestNG, xUnit, Cucumber, Mocha) to Faros.
 
@@ -141,59 +134,6 @@ faros sync ci-cd deploy \
   --deploy-end-time "2024-01-15T11:03:00Z"
 ```
 
-### `faros sources`
-
-Manage data sources.
-
-**Commands:**
-- `faros sources list` - List all configured sources
-- `faros sources get <name>` - Get source details
-
-**Example:**
-```bash
-$ faros sources list
-
-Configured Sources:
-
-┌────────┬────────┬────────┬────────────────────┐
-│ Source │ Type   │ Status │ Config             │
-├────────┼────────┼────────┼────────────────────┤
-│ linear │ Linear │ ✓      │ Configured         │
-│ github │ GitHub │ ✓      │ Configured         │
-│ s3     │ S3     │ ⚠      │ Missing credentials│
-└────────┴────────┴────────┴────────────────────┘
-```
-
-### `faros logs`
-
-View sync logs and debug information.
-
-**Usage:**
-```bash
-faros logs [options]
-```
-
-**Options:**
-- `--level <level>` - Filter by log level (info, warn, error, debug)
-- `--since <time>` - Show logs since time (ISO-8601)
-- `--until <time>` - Show logs until time (ISO-8601)
-- `--out-file <path>` - Export logs to file
-
-**Examples:**
-```bash
-# Recent logs
-faros logs
-
-# Error logs only
-faros logs --level error
-
-# Export logs
-faros logs --out-file sync-logs.json
-
-# Logs from specific time
-faros logs --since "2024-01-15T10:00:00Z"
-```
-
 ## Configuration
 
 The CLI uses a two-file configuration approach:
@@ -216,17 +156,6 @@ The CLI can be configured entirely through environment variables, which is ideal
 | `FAROS_GRAPH` | Target graph name | `default` | `my-graph` |
 | `FAROS_STAGING_GRAPH` | Staging graph for dry runs | `default-staging` | `my-graph-staging` |
 | `FAROS_ORIGIN` | Origin identifier for synced data | - | `my-company-ci` |
-
-#### Data Source Credentials
-
-| Variable | Description | Used For |
-|----------|-------------|----------|
-| `LINEAR_API_KEY` | Linear API key | Syncing Linear issues |
-| `GITHUB_TOKEN` | GitHub personal access token | GitHub integration |
-| `GITLAB_TOKEN` | GitLab personal access token | GitLab integration |
-| `JIRA_TOKEN` | Jira API token | Jira integration |
-| `JIRA_USERNAME` | Jira username | Jira integration |
-| `JIRA_URL` | Jira instance URL | Jira integration |
 
 #### AWS Credentials (for S3 Test Results)
 
@@ -254,17 +183,6 @@ url: https://prod.api.faros.ai
 graph: default
 stagingGraph: default-staging
 origin: my-company-ci
-
-# Data sources (credentials in .env or environment variables)
-sources:
-  linear:
-    type: Linear
-    syncInterval: 1h
-    streams:
-      - issues
-      - projects
-      - teams
-      - users
 
 # Default values for commands
 defaults:
@@ -357,10 +275,6 @@ FAROS_ORIGIN=github-actions
 AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
 AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
 AWS_REGION=us-east-1
-
-# Data sources
-LINEAR_API_KEY=your_linear_key
-GITHUB_TOKEN=your_github_token
 
 # Logging
 FAROS_LOG_LEVEL=info

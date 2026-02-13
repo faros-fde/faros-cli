@@ -4,8 +4,6 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import updateNotifier from 'update-notifier';
 import { syncCommand } from './commands/sync';
-import { sourcesCommand } from './commands/sources';
-import { logsCommand } from './commands/logs';
 import { ui } from './lib/ui';
 import { initLogger } from './lib/logger';
 
@@ -31,30 +29,21 @@ async function main() {
   
   program
     .name('faros')
-    .description('CLI for Faros AI - sync data, manage sources, view logs')
+    .description('CLI for Faros AI - sync test results and CI/CD events')
     .version(pkg.version)
     .addHelpText('before', `
-${chalk.bold.blue('Faros CLI')} - Instrumentation & Data Sync
+${chalk.bold.blue('Faros CLI')} - Test Results & CI/CD Event Sync
 `)
     .addHelpText('after', `
 ${chalk.bold('Quick Start:')}
-  ${chalk.dim('# Sync Linear data (issues, projects, teams, etc.)')}
-  $ faros sync linear
-  
-  ${chalk.dim('# Sync only specific Linear streams')}
-  $ faros sync linear --streams issues,projects
-  
   ${chalk.dim('# Sync test results')}
   $ faros sync tests test-results/*.xml --source "Jenkins" --commit "GitHub://org/repo/abc"
   
   ${chalk.dim('# Report build status')}
   $ faros sync ci-cd build --status Success --commit "GitHub://org/repo/abc" --run "Jenkins://org/pipeline/123"
   
-  ${chalk.dim('# View logs')}
-  $ faros logs
-  
-  ${chalk.dim('# List sources')}
-  $ faros sources list
+  ${chalk.dim('# Report deployment status')}
+  $ faros sync ci-cd deploy --status Success --commit "GitHub://org/repo/abc" --deploy "Kubernetes://app/Prod/123"
 
 ${chalk.bold('Documentation:')} https://docs.faros.ai
 ${chalk.bold('Support:')} https://community.faros.ai
@@ -77,8 +66,6 @@ ${chalk.bold('Support:')} https://community.faros.ai
   
   // Register commands
   program.addCommand(syncCommand());
-  program.addCommand(sourcesCommand());
-  program.addCommand(logsCommand());
   
   // Parse arguments
   await program.parseAsync(process.argv);
