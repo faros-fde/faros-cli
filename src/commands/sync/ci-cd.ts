@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { loadConfig, mergeConfig, getStagingGraph } from '../../config/loader';
+import { loadConfig, mergeConfig } from '../../config/loader';
 import { createClient, sendEvent } from '../../lib/api/client';
 import { ui } from '../../lib/ui';
 import { SyncCICDOptions } from '../../types/config';
@@ -23,12 +23,7 @@ async function syncBuildStatus(options: SyncCICDOptions): Promise<void> {
     throw new Error('Either --commit or --run is required');
   }
   
-  const targetGraph = options.dryRun ? getStagingGraph(config) : config.graph;
-  
-  if (options.dryRun) {
-    ui.log.warning(`Dry-run mode: syncing to staging graph '${targetGraph}'`);
-    console.log();
-  }
+  const targetGraph = config.graph;
   
   const data: any = {
     type: 'CI',
@@ -60,11 +55,7 @@ async function syncBuildStatus(options: SyncCICDOptions): Promise<void> {
   await sendEvent(client, targetGraph, data);
   
   spinner.succeed('Build status reported');
-  
-  if (options.dryRun) {
-    console.log(chalk.dim(`  Graph: ${targetGraph}`));
-    console.log(chalk.dim('  Run without --dry-run to sync to production'));
-  }
+  console.log(chalk.dim(`  Graph: ${targetGraph}`));
 }
 
 async function syncDeployStatus(options: SyncCICDOptions): Promise<void> {
@@ -79,12 +70,7 @@ async function syncDeployStatus(options: SyncCICDOptions): Promise<void> {
     throw new Error('Either --commit or --artifact is required');
   }
   
-  const targetGraph = options.dryRun ? getStagingGraph(config) : config.graph;
-  
-  if (options.dryRun) {
-    ui.log.warning(`Dry-run mode: syncing to staging graph '${targetGraph}'`);
-    console.log();
-  }
+  const targetGraph = config.graph;
   
   const data: any = {
     type: 'CD',
@@ -121,11 +107,7 @@ async function syncDeployStatus(options: SyncCICDOptions): Promise<void> {
   await sendEvent(client, targetGraph, data);
   
   spinner.succeed('Deployment reported');
-  
-  if (options.dryRun) {
-    console.log(chalk.dim(`  Graph: ${targetGraph}`));
-    console.log(chalk.dim('  Run without --dry-run to sync to production'));
-  }
+  console.log(chalk.dim(`  Graph: ${targetGraph}`));
 }
 
 export function syncCICDCommand(): Command {
@@ -143,7 +125,6 @@ export function syncCICDCommand(): Command {
     .option('--run-start-time <time>', 'Run start time')
     .option('--run-end-time <time>', 'Run end time')
     .option('--artifact <uri>', 'Artifact URI')
-    .option('--dry-run', 'Sync to staging graph')
     .action(async (options) => {
       try {
         await syncBuildStatus({ ...options, runStatus: options.status || options.runStatus });
@@ -167,7 +148,6 @@ export function syncCICDCommand(): Command {
     .option('--run-status <status>', 'Run status')
     .option('--run-start-time <time>', 'Run start time')
     .option('--run-end-time <time>', 'Run end time')
-    .option('--dry-run', 'Sync to staging graph')
     .action(async (options) => {
       try {
         await syncDeployStatus({ ...options, deployStatus: options.status || options.deployStatus });

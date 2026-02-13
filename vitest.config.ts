@@ -39,7 +39,7 @@ export default defineConfig({
         // Per-file thresholds for critical paths
         'src/config/loader.ts': {
           lines: 70,
-          functions: 65,
+          functions: 50,
           branches: 75,
           statements: 70,
         },

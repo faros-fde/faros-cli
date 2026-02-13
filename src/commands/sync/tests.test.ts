@@ -25,7 +25,6 @@ describe('commands/sync/tests', () => {
         concurrency: 8,
       },
     });
-    vi.mocked(configLoader.getStagingGraph).mockReturnValue('test-graph-staging');
     
     const mockClient = {
       post: vi.fn().mockResolvedValue({ data: {} }),
@@ -272,20 +271,6 @@ describe('commands/sync/tests', () => {
       // In validation mode, sendEvent should not be called
       // This would be tested through command execution
       expect(true).toBe(true);
-    });
-  });
-  
-  describe('dry-run mode', () => {
-    it('should sync to staging graph', async () => {
-      vi.mocked(configLoader.getStagingGraph).mockReturnValue('test-graph-staging');
-      
-      const stagingGraph = configLoader.getStagingGraph({
-        url: 'https://test.api.faros.ai',
-        graph: 'test-graph',
-        origin: 'test-cli',
-      });
-      
-      expect(stagingGraph).toBe('test-graph-staging');
     });
   });
   

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mergeConfig, getStagingGraph } from './loader';
+import { mergeConfig } from './loader';
 import { Config } from '../types/config';
 import { mockConsole, createMockEnv } from '../test-utils/test-helpers';
 
@@ -190,39 +190,6 @@ describe('config/loader', () => {
       expect(result.origin).toBe('file-origin');
       // File config wins for defaults
       expect(result.defaults?.concurrency).toBe(4);
-    });
-  });
-  
-  describe('getStagingGraph', () => {
-    it('should return custom staging graph if specified', () => {
-      const config: Config = {
-        url: 'https://api.faros.ai',
-        graph: 'production',
-        stagingGraph: 'my-custom-staging',
-        origin: 'cli',
-      };
-      
-      expect(getStagingGraph(config)).toBe('my-custom-staging');
-    });
-    
-    it('should generate staging graph name from production graph', () => {
-      const config: Config = {
-        url: 'https://api.faros.ai',
-        graph: 'production',
-        origin: 'cli',
-      };
-      
-      expect(getStagingGraph(config)).toBe('production-staging');
-    });
-    
-    it('should handle graph names that already contain staging', () => {
-      const config: Config = {
-        url: 'https://api.faros.ai',
-        graph: 'test-staging',
-        origin: 'cli',
-      };
-      
-      expect(getStagingGraph(config)).toBe('test-staging-staging');
     });
   });
 });

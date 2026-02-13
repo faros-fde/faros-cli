@@ -6,7 +6,6 @@ export const ConfigSchema = z.object({
   // API Configuration (can be in config file)
   url: z.string().url().default('https://prod.api.faros.ai'),
   graph: z.string().default('default'),
-  stagingGraph: z.string().optional(),
   origin: z.string().default('faros-cli'),
   
   // Credentials - populated at runtime from env vars / CLI flags only.
@@ -58,7 +57,6 @@ export interface BaseCommandOptions {
   quiet?: boolean;
   json?: boolean;
   noColor?: boolean;
-  dryRun?: boolean;
   validate?: boolean;
   preview?: boolean;
 }

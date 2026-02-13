@@ -18,7 +18,7 @@ CLI for Faros AI - sync test results and CI/CD events.
   - [Configuration Priority](#configuration-priority)
   - [CI/CD Environments](#cicd-environments)
 - [Global Options](#global-options)
-- [Dry Run & Validation](#dry-run--validation)
+- [Validation](#validation)
 - [CI/CD Integration](#cicd-integration)
   - [GitHub Actions](#github-actions)
   - [Jenkins](#jenkins)
@@ -77,7 +77,6 @@ faros sync tests <paths...> [options]
 - `--concurrency <number>` - Concurrent uploads (default: 8)
 - `--validate` - Validate only, don't send (fast, offline)
 - `--preview` - Show sample records
-- `--dry-run` - Sync to staging graph
 
 **Examples:**
 
@@ -91,11 +90,6 @@ faros sync tests test-results/*.xml \
 Validate before syncing:
 ```bash
 faros sync tests *.xml --validate
-```
-
-Dry run to staging:
-```bash
-faros sync tests *.xml --dry-run
 ```
 
 #### `faros sync ci-cd`
@@ -271,9 +265,9 @@ All commands support these global options:
 - `--json` - Output JSON (for scripting)
 - `--no-color` - Disable colors
 
-## Dry Run & Validation
+## Validation
 
-The CLI supports three verification modes:
+The CLI supports two verification modes before syncing to production:
 
 ### 1. `--validate` (Fast, Offline)
 
@@ -295,28 +289,7 @@ Would create:
 Run without --validate to sync to Faros
 ```
 
-### 2. `--dry-run` (Full E2E, Staging Graph)
-
-Sync to a staging graph for full verification:
-
-```bash
-faros sync tests *.xml --dry-run
-```
-
-**Output:**
-```
-⚠ Dry-run mode: syncing to staging graph 'default-staging'
-
-Uploading |████████████████████| 100% | 24/24 suites
-
-✓ Synced 24 test suites to staging graph
-  Graph: default-staging
-  View in Faros: https://app.faros.ai/default-staging/qa
-
-To sync to production, run without --dry-run
-```
-
-### 3. `--preview` (Sample Preview)
+### 2. `--preview` (Sample Preview)
 
 Show sample records that would be created:
 
@@ -338,7 +311,19 @@ qa_TestExecution:
     "stats": { "passed": 45, "failed": 0 }
   }
 
-Run with --dry-run to sync to staging
+Run without --preview to sync to Faros
+```
+
+**Testing with Different Environments:**
+
+To sync to different environments or graphs, use the `FAROS_GRAPH` environment variable or the `-g/--graph` flag:
+
+```bash
+# Sync to staging graph
+FAROS_GRAPH=staging faros sync tests *.xml
+
+# Or use the flag
+faros sync tests *.xml --graph staging
 ```
 
 ## CI/CD Integration
@@ -595,7 +580,7 @@ npm run test:ui
 - ✅ Test result parsing (JUnit, TestNG, xUnit, Cucumber, Mocha)
 - ✅ CI/CD event creation and validation
 - ✅ URI format validation
-- ✅ Dry-run and validation modes
+- ✅ Validation and preview modes
 
 **Continuous Integration:**
 Tests run automatically on every push and pull request via GitHub Actions. Coverage reports are uploaded to Codecov.

@@ -112,7 +112,3 @@ export function mergeConfig(
   
   return merged;
 }
-
-export function getStagingGraph(config: Config): string {
-  return config.stagingGraph || `${config.graph}-staging`;
-}

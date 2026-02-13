@@ -4,7 +4,7 @@
 # E2E Test Script for faros sync tests command
 # =============================================================================
 # This script tests the CLI end-to-end by syncing real test results to Faros.
-# It uses test fixtures and can run in dry-run mode (staging graph).
+# It uses test fixtures and syncs to the configured graph.
 # =============================================================================
 
 set -e
@@ -24,9 +24,6 @@ CLI_BIN="$PROJECT_ROOT/bin/faros"
 
 # Check if running in CI
 IS_CI="${CI:-false}"
-
-# Default to dry-run mode (uses staging graph)
-DRY_RUN="${DRY_RUN:-true}"
 
 # =============================================================================
 # Helper Functions
@@ -97,8 +94,8 @@ log_info "Testing API connectivity..."
 log_info "Configuration:"
 log_info "  Faros URL: ${FAROS_URL:-https://prod.api.faros.ai (default)}"
 log_info "  Faros Graph: ${FAROS_GRAPH:-default (default)}"
-log_info "  Dry Run: $DRY_RUN"
 log_info "  CI Mode: $IS_CI"
+log_warning "This will sync to the configured graph. Use FAROS_GRAPH env var to target a different graph."
 
 # =============================================================================
 # Test 1: Sync JUnit XML (passing tests)
@@ -125,8 +122,7 @@ if node "$CLI_BIN" sync tests "$JUNIT_PASS" \
   --source "e2e-test" \
   --type "Unit" \
   --commit "GitHub://faros-fde/faros-cli/e2e-test-$(date +%s)" \
-  --test-start "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
-  $DRY_RUN_FLAG; then
+  --test-start "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"; then
   log_success "JUnit XML sync completed"
 else
   log_error "JUnit XML sync failed"
@@ -149,8 +145,7 @@ else
   if node "$CLI_BIN" sync tests "$JUNIT_FAIL" \
     --source "e2e-test" \
     --type "Integration" \
-    --commit "GitHub://faros-fde/faros-cli/e2e-test-$(date +%s)" \
-    $DRY_RUN_FLAG; then
+    --commit "GitHub://faros-fde/faros-cli/e2e-test-$(date +%s)"; then
     log_success "JUnit XML (fail) sync completed"
   else
     log_error "JUnit XML (fail) sync failed"
@@ -174,8 +169,7 @@ else
   if node "$CLI_BIN" sync tests "$TESTNG" \
     --format testng \
     --source "e2e-test" \
-    --commit "GitHub://faros-fde/faros-cli/e2e-test-$(date +%s)" \
-    $DRY_RUN_FLAG; then
+    --commit "GitHub://faros-fde/faros-cli/e2e-test-$(date +%s)"; then
     log_success "TestNG XML sync completed"
   else
     log_error "TestNG XML sync failed"
@@ -199,8 +193,7 @@ else
   if node "$CLI_BIN" sync tests "$MOCHA" \
     --format mocha \
     --source "e2e-test" \
-    --commit "GitHub://faros-fde/faros-cli/e2e-test-$(date +%s)" \
-    $DRY_RUN_FLAG; then
+    --commit "GitHub://faros-fde/faros-cli/e2e-test-$(date +%s)"; then
     log_success "Mocha JSON sync completed"
   else
     log_error "Mocha JSON sync failed"
@@ -234,21 +227,13 @@ section "E2E Test Summary"
 
 log_success "All tests passed!"
 
-if [ "$DRY_RUN" = "true" ]; then
-  log_info "Tests synced to staging graph (dry-run mode)"
-  log_info "To sync to production graph, run: DRY_RUN=false $0"
-else
-  log_info "Tests synced to production graph"
-  log_info "Check the Faros UI to verify data"
-fi
+log_info "Tests synced to graph: ${FAROS_GRAPH:-default}"
+log_info "Check the Faros UI to verify data"
 
 echo ""
 log_info "To check synced data in Faros:"
 log_info "  1. Visit ${FAROS_URL:-https://prod.api.faros.ai}"
 log_info "  2. Navigate to the graph: ${FAROS_GRAPH:-default}"
-if [ "$DRY_RUN" = "true" ]; then
-  log_info "     (or staging: ${FAROS_STAGING_GRAPH:-default-staging})"
-fi
 log_info "  3. Query for 'qa_TestExecution' records"
 
 echo ""

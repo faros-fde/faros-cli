@@ -20,7 +20,6 @@ describe('commands/sync/ci-cd', () => {
       origin: 'test-cli',
       apiKey: 'test-key',
     });
-    vi.mocked(configLoader.getStagingGraph).mockReturnValue('test-graph-staging');
     
     const mockClient = {
       post: vi.fn().mockResolvedValue({ data: {} }),
@@ -346,18 +345,6 @@ describe('commands/sync/ci-cd', () => {
       validUris.forEach(uri => {
         expect(uri).toMatch(/^[A-Za-z]+:\/\/.+/);
       });
-    });
-  });
-  
-  describe('dry-run mode', () => {
-    it('should sync to staging graph in dry-run mode', () => {
-      const stagingGraph = configLoader.getStagingGraph({
-        url: 'https://test.api.faros.ai',
-        graph: 'production',
-        origin: 'test-cli',
-      });
-      
-      expect(stagingGraph).toBe('test-graph-staging');
     });
   });
   

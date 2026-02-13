@@ -3,7 +3,7 @@ import { parse } from 'test-results-parser';
 import { v4 as uuidv4 } from 'uuid';
 import pLimit from 'p-limit';
 import chalk from 'chalk';
-import { loadConfig, mergeConfig, getStagingGraph } from '../../config/loader';
+import { loadConfig, mergeConfig } from '../../config/loader';
 import { createClient, sendEvent } from '../../lib/api/client';
 import { ui } from '../../lib/ui';
 import { SyncTestsOptions } from '../../types/config';
@@ -125,16 +125,8 @@ async function processTestResults(
       }
       
       console.log();
-      console.log(chalk.dim('Run with --dry-run to sync to staging for full verification'));
+      console.log(chalk.dim('To sync to production, run without --validate flag'));
       return;
-    }
-    
-    // Determine target graph
-    let targetGraph = config.graph;
-    if (options.dryRun) {
-      targetGraph = getStagingGraph(config);
-      ui.log.warning(`Dry-run mode: syncing to staging graph '${targetGraph}'`);
-      console.log();
     }
     
     // Create API client
@@ -146,6 +138,8 @@ async function processTestResults(
     });
     
     progressBar.start(results.suites.length, 0);
+    
+    const targetGraph = config.graph;
     
     const limit = pLimit(options.concurrency || config.defaults?.concurrency || 8);
     const errors: Array<{ suite: string; error: string }> = [];
@@ -236,14 +230,10 @@ async function processTestResults(
       process.exit(1);
     }
     
-    ui.log.success(`Synced ${uploaded} test suite(s)${options.dryRun ? ' to staging graph' : ''}`);
+    ui.log.success(`Synced ${uploaded} test suite(s)`);
     
-    if (options.dryRun) {
-      console.log(chalk.dim(`  Graph: ${targetGraph}`));
-      console.log(chalk.dim(`  View in Faros: ${config.url.replace('/api', '')}/${targetGraph}/qa`));
-      console.log();
-      console.log(chalk.dim('To sync to production, run without --dry-run flag'));
-    }
+    console.log(chalk.dim(`  Graph: ${targetGraph}`));
+    console.log(chalk.dim(`  View in Faros: ${config.url.replace('/api', '')}/${targetGraph}/qa`));
 }
 
 export function syncTestsCommand(): Command {
@@ -269,7 +259,6 @@ export function syncTestsCommand(): Command {
     .option('--concurrency <number>', 'Number of concurrent uploads', parseInt, 8)
     .option('--validate', 'Validate only, don\'t send to Faros (fast, offline)')
     .option('--preview', 'Show sample records without sending')
-    .option('--dry-run', 'Sync to staging graph for verification')
     .addHelpText('after', `
 Examples:
   # Sync local test results
@@ -277,9 +266,6 @@ Examples:
   
   # Validate before syncing
   $ faros sync tests *.xml --validate
-  
-  # Dry run to staging
-  $ faros sync tests *.xml --dry-run
     `)
     .action(async (paths, options) => {
       try {

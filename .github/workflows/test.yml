@@ -71,7 +71,7 @@ jobs:
             --type "Unit" \
             --commit "GitHub://faros-fde/faros-cli/${{ github.sha }}" \
             --test-start "${{ github.event.head_commit.timestamp }}" \
-            --dry-run || echo "Warning: Failed to sync test results to Faros (non-blocking)"
+            || echo "Warning: Failed to sync test results to Faros (non-blocking)"
       
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
