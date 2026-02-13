@@ -1,6 +1,7 @@
 # Faros CLI
 
 [![npm version](https://badge.fury.io/js/@faros-fde-sandbox%2Fcli.svg)](https://www.npmjs.com/package/@faros-fde-sandbox/cli)
+[![Test](https://github.com/faros-fde/faros-cli/actions/workflows/test.yml/badge.svg)](https://github.com/faros-fde/faros-cli/actions/workflows/test.yml)
 
 CLI for Faros AI - sync test results and CI/CD events.
 
