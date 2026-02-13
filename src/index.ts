@@ -6,8 +6,10 @@ import updateNotifier from 'update-notifier';
 import { syncCommand } from './commands/sync';
 import { ui } from './lib/ui';
 import { initLogger } from './lib/logger';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
-const pkg = require('../package.json');
+const pkg = JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf-8'));
 
 // Check for updates
 const notifier = updateNotifier({

@@ -1,5 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import * as fs from 'fs';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as path from 'path';
 import { initLogger, getLogger, LOG_FILE_PATH } from './logger';
 

@@ -1,27 +1,9 @@
-import { Command, Option } from 'commander';
+import { Command } from 'commander';
 import chalk from 'chalk';
 import { loadConfig, mergeConfig, getStagingGraph } from '../../config/loader';
 import { createClient, sendEvent } from '../../lib/api/client';
 import { ui } from '../../lib/ui';
 import { SyncCICDOptions } from '../../types/config';
-
-enum Status {
-  Success = 'Success',
-  Failed = 'Failed',
-  Canceled = 'Canceled',
-  Queued = 'Queued',
-  Running = 'Running',
-  Unknown = 'Unknown',
-}
-
-enum DeployStatus {
-  Success = 'Success',
-  Failed = 'Failed',
-  Canceled = 'Canceled',
-  Queued = 'Queued',
-  Running = 'Running',
-  RolledBack = 'RolledBack',
-}
 
 function parseTime(time: string): string {
   if (time.toLowerCase() === 'now') {

@@ -5,7 +5,7 @@ import pLimit from 'p-limit';
 import chalk from 'chalk';
 import { loadConfig, mergeConfig, getStagingGraph } from '../../config/loader';
 import { createClient, sendEvent } from '../../lib/api/client';
-import { ui, isCI } from '../../lib/ui';
+import { ui } from '../../lib/ui';
 import { SyncTestsOptions } from '../../types/config';
 
 enum TestResultsFormat {
@@ -69,9 +69,7 @@ async function processTestResults(
   // Local files only
   const files = paths.flatMap(p => p.split(',').map(v => v.trim()));
   
-  try {
-    
-    // Parse test results
+  // Parse test results
     const parseSpinner = ui.spinner('Parsing test results...');
     parseSpinner.start();
     
@@ -246,9 +244,6 @@ async function processTestResults(
       console.log();
       console.log(chalk.dim('To sync to production, run without --dry-run flag'));
     }
-  } catch (error: any) {
-    throw error;
-  }
 }
 
 export function syncTestsCommand(): Command {

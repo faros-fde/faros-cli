@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as configLoader from '../../config/loader';
 import * as apiClient from '../../lib/api/client';
-import { mockConsole } from '../../../test/utils/test-helpers';
+import { mockConsole } from '../../test-utils/test-helpers';
 
 vi.mock('../../config/loader');
 vi.mock('../../lib/api/client');

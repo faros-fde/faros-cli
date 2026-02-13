@@ -1,5 +1,4 @@
 import pino from 'pino';
-import * as fs from 'fs';
 import * as path from 'path';
 
 const LOG_FILE = path.join(process.cwd(), 'faros.log');

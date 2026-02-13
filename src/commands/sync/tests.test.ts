@@ -2,20 +2,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { parse } from 'test-results-parser';
 import * as configLoader from '../../config/loader';
 import * as apiClient from '../../lib/api/client';
-import { mockConsole } from '../../../test/utils/test-helpers';
-import path from 'path';
+import { mockConsole } from '../../test-utils/test-helpers';
 
 vi.mock('test-results-parser');
 vi.mock('../../config/loader');
 vi.mock('../../lib/api/client');
 
-// Import the function we're testing after mocking
-const testsModule = await import('./tests');
-
 describe('commands/sync/tests', () => {
   mockConsole();
-  
-  const fixturesDir = path.join(__dirname, '../../../test/fixtures');
   
   beforeEach(() => {
     vi.clearAllMocks();

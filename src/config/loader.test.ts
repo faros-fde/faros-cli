@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { mergeConfig, getStagingGraph } from './loader';
 import { Config } from '../types/config';
-import { mockConsole, mockProcessExit, createMockEnv } from '../../test/utils/test-helpers';
+import { mockConsole, createMockEnv } from '../test-utils/test-helpers';
 
 describe('config/loader', () => {
   mockConsole();
