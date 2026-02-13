@@ -24,6 +24,7 @@ export const ConfigSchema = z.object({
     streams: z.array(z.string()).optional(),
     // Linear-specific settings
     cutoffDays: z.number().optional(),
+    pageSize: z.number().optional(),
     startDate: z.string().optional(),
     endDate: z.string().optional(),
     // Docker image overrides
@@ -88,6 +89,7 @@ export interface SyncCICDOptions extends BaseCommandOptions {
 export interface SyncLinearOptions extends BaseCommandOptions {
   linearApiKey?: string;
   cutoffDays?: number;
+  pageSize?: number;
   startDate?: string;
   endDate?: string;
   streams?: string;

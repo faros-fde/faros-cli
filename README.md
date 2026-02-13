@@ -3,7 +3,7 @@
 [![npm version](https://badge.fury.io/js/@faros-fde-sandbox%2Fcli.svg)](https://www.npmjs.com/package/@faros-fde-sandbox/cli)
 [![Test](https://github.com/faros-fde/faros-cli/actions/workflows/test.yml/badge.svg)](https://github.com/faros-fde/faros-cli/actions/workflows/test.yml)
 
-CLI for Faros AI - sync test results and CI/CD events.
+CLI for Faros AI - sync test results, CI/CD events, and Linear data.
 
 ## Table of Contents
 
@@ -12,6 +12,7 @@ CLI for Faros AI - sync test results and CI/CD events.
 - [Commands](#commands)
   - [faros sync tests](#faros-sync-tests)
   - [faros sync ci-cd](#faros-sync-ci-cd)
+  - [faros sync linear](#faros-sync-linear)
 - [Configuration](#configuration)
   - [Environment Variables](#environment-variables)
   - [Configuration File](#configuration-file)
@@ -54,6 +55,11 @@ faros sync ci-cd deploy \
   --status Success \
   --commit "GitHub://myorg/myrepo/abc123" \
   --deploy "Kubernetes://myapp/Prod/deploy-789"
+
+# Sync Linear data
+faros sync linear \
+  --linear-api-key lin_api_xxx \
+  --cutoff-days 30
 ```
 
 ## Commands
@@ -121,6 +127,90 @@ faros sync ci-cd deploy \
   --deploy-end-time "2024-01-15T11:03:00Z"
 ```
 
+### `faros sync linear`
+
+Sync Linear issues, projects, teams, and users to Faros.
+
+**Usage:**
+```bash
+faros sync linear --linear-api-key <key> [options]
+```
+
+**Options:**
+- `--linear-api-key <key>` - Linear API key (or set `LINEAR_API_KEY` env var)
+- `--cutoff-days <days>` - Fetch issues updated in the last N days (default: 90, or from config)
+- `--page-size <size>` - Number of records per API call, 1-250 (default: 50)
+- `--preview` - Show sync configuration without executing
+
+**Configuration Priority:**
+1. CLI options (`--linear-api-key`, `--cutoff-days`)
+2. Environment variables (`LINEAR_API_KEY`, `FAROS_API_KEY`, `FAROS_GRAPH`)
+3. Config file (`faros.config.yaml`)
+4. Defaults
+
+**Examples:**
+
+Using environment variables (recommended):
+```bash
+export LINEAR_API_KEY=lin_api_xxx
+export FAROS_API_KEY=your_faros_key
+export FAROS_GRAPH=default
+
+faros sync linear
+```
+
+Using CLI options:
+```bash
+faros sync linear \
+  --linear-api-key lin_api_xxx \
+  --graph default
+```
+
+Using config file (`faros.config.yaml`):
+```yaml
+# Never put API keys here - use environment variables!
+url: https://prod.api.faros.ai
+graph: default
+origin: my-company-ci
+
+sources:
+  linear:
+    cutoffDays: 30    # Fetch last 30 days
+    pageSize: 100     # Larger page size
+```
+
+Then run:
+```bash
+export LINEAR_API_KEY=lin_api_xxx
+faros sync linear
+```
+
+Sync only recent issues (override config):
+```bash
+faros sync linear --cutoff-days 7
+```
+
+Preview configuration before syncing:
+```bash
+faros sync linear --preview
+```
+
+**What gets synced:**
+- **Teams** - All teams in your Linear workspace
+- **Projects** - All projects including leads and team assignments
+- **Issues** - Issues updated within the cutoff period (default: 90 days)
+- **Users** - All users in your workspace
+
+**Requirements:**
+- Docker must be running
+- Linear API key with read permissions
+- Faros API key and graph configured
+
+**Notes:**
+- Issues are filtered by update date using the `--cutoff-days` parameter
+- The connector uses pagination to handle large datasets
+- All timestamps and relationships are preserved
+
 ## Configuration
 
 The CLI uses a two-file configuration approach:
@@ -134,6 +224,7 @@ The CLI can be configured entirely through environment variables, which is ideal
 | Variable | Description | Example |
 |----------|-------------|---------|
 | `FAROS_API_KEY` | Faros API key (required for all operations) | `your_faros_api_key_here` |
+| `LINEAR_API_KEY` | Linear API key (required for `faros sync linear`) | `lin_api_xxx` |
 
 #### Optional Faros Configuration
 
