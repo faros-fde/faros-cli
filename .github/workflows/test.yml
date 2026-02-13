@@ -58,6 +58,21 @@ jobs:
       - name: Run coverage
         run: npm run test:coverage
       
+      - name: Build CLI
+        run: npm run build
+      
+      - name: Sync test results to Faros
+        if: matrix.node-version == 20 && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          FAROS_API_KEY: ${{ secrets.FAROS_API_KEY }}
+        run: |
+          node bin/faros sync tests test-results/junit.xml \
+            --source "GitHub-Actions" \
+            --type "Unit" \
+            --commit "GitHub://faros-fde/faros-cli/${{ github.sha }}" \
+            --test-start "${{ github.event.head_commit.timestamp }}" \
+            --dry-run || echo "Warning: Failed to sync test results to Faros (non-blocking)"
+      
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
         if: matrix.node-version == 20 && (github.event_name != 'workflow_dispatch' || inputs.upload-coverage)
@@ -82,6 +97,7 @@ jobs:
         with:
           name: test-results-node-${{ matrix.node-version }}
           path: |
+            test-results/
             coverage/
             *.log
           retention-days: 7

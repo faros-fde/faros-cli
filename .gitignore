@@ -20,3 +20,4 @@ faros.config.json
 
 # AWS credentials
 .aws/
+test-results/

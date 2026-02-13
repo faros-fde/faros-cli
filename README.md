@@ -599,6 +599,18 @@ npm run test:ui
 **Continuous Integration:**
 Tests run automatically on every push and pull request via GitHub Actions. Coverage reports are uploaded to Codecov.
 
+**Test Result Syncing:**
+Test results are automatically synced to Faros AI after every test run on the `main` branch. This provides observability into test health, trends, and failures over time. Results are synced using the CLI itself:
+
+```bash
+faros sync tests test-results/junit.xml \
+  --source "GitHub-Actions" \
+  --type "Unit" \
+  --commit "GitHub://faros-fde/faros-cli/$COMMIT_SHA"
+```
+
+View synced test results in the Faros UI under the `qa_TestExecution` model.
+
 ### End-to-End Testing
 
 E2E tests validate the full CLI workflow by actually syncing test results to Faros AI.
