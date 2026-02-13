@@ -1,92 +1,123 @@
-# Publishing @faros-fde-sandbox/cli to NPM
-
-## Overview
-
-The Faros CLI is published as a scoped package under the `@faros-fde-sandbox` namespace on npm.
+# Publishing @faros-fde-sandbox/cli
 
 **Package**: [@faros-fde-sandbox/cli](https://www.npmjs.com/package/@faros-fde-sandbox/cli)
 
-## Automated Publishing (Recommended)
+## Quick Start
 
-We use GitHub Actions for automated publishing triggered by git tags.
-
-### Prerequisites
-
-1. **NPM Token** - Create an automation token at [npmjs.com/settings/tokens](https://www.npmjs.com/settings/tokens)
-2. **GitHub Secret** - Add the token as `NPM_TOKEN` in repository secrets
-
-### Publishing Process
-
-#### 1. Prepare Release
+Publishing is automated via GitHub Actions. Just bump the version and push:
 
 ```bash
-cd faros-repos/faros-cli
+# Patch release (bug fixes like 1.1.1 → 1.1.2)
+npm version patch -m "[FAR-XX] Release v%s" && git push && git push --tags
 
-# Make sure everything is committed and tests pass
+# Minor release (new features like 1.1.2 → 1.2.0)
+npm version minor -m "[FAR-XX] Release v%s" && git push && git push --tags
+
+# Major release (breaking changes like 1.2.0 → 2.0.0)
+npm version major -m "[FAR-XX] Release v%s" && git push && git push --tags
+```
+
+That's it! GitHub Actions will automatically publish to npm.
+
+## Release Process
+
+### 1. Create Linear Task
+
+Create a Linear task for the release:
+
+```bash
+# Example: "Release faros-cli v1.2.3"
+```
+
+### 2. Prepare Release
+
+```bash
+# Ensure everything is clean
 git status
+git pull
+
+# Run tests
 npm test
+
+# Build
 npm run build
 ```
 
-#### 2. Bump Version
+### 3. Bump Version
 
-Follow semantic versioning:
-- **Patch** (1.1.0 → 1.1.1): Bug fixes
+Use semantic versioning:
+- **Patch** (1.1.1 → 1.1.2): Bug fixes only
 - **Minor** (1.1.0 → 1.2.0): New features, backward compatible
-- **Major** (1.1.0 → 2.0.0): Breaking changes
+- **Major** (1.0.0 → 2.0.0): Breaking changes
 
 ```bash
-# Patch release (bug fixes)
-npm version patch
-
-# Minor release (new features)
-npm version minor
-
-# Major release (breaking changes)
-npm version major
-
-# Or set specific version
-npm version 1.2.3
+# Replace FAR-XX with your Linear task ID
+npm version patch -m "[FAR-XX] Release v%s"
 ```
 
-This updates `package.json` and creates a git commit with the version.
+This will:
+- Update `package.json` version
+- Create a git commit with the message
+- Create a git tag (e.g., `v1.1.2`)
 
-#### 3. Create and Push Tag
+### 4. Push
 
 ```bash
-# Create tag (matches version in package.json)
-git tag v$(node -p "require('./package.json').version")
-
-# Push commits and tags
+# Push commit and tags
 git push && git push --tags
 ```
 
-#### 4. GitHub Actions Takes Over
+### 5. Automated Publishing
 
-The [`.github/workflows/publish.yml`](.github/workflows/publish.yml) workflow automatically:
-- Detects the tag push
-- Checks out code
-- Installs dependencies
+The [`.github/workflows/publish.yml`](.github/workflows/publish.yml) workflow:
+- Triggers on `v*` tags
+- Runs tests
 - Builds the package
 - Publishes to npm with `--access public`
 
-#### 5. Verify Publication
+### 6. Verify
 
 ```bash
-# Check published version
+# Wait 1-2 minutes, then check
 npm view @faros-fde-sandbox/cli version
 
-# View on npm
-open https://www.npmjs.com/package/@faros-fde-sandbox/cli
-
 # Test installation
-npm install -g @faros-fde-sandbox/cli
+npm install -g @faros-fde-sandbox/cli@latest
 faros --version
 ```
 
+### 7. Create GitHub Release (Optional)
+
+Visit the [Releases page](https://github.com/faros-fde/faros-cli/releases) and create a release with:
+
+**Title**: `v1.2.3`
+
+**Description**:
+```markdown
+## What's Changed
+
+### Features
+- New feature description ([FAR-XX](linear-link))
+
+### Bug Fixes  
+- Bug fix description ([FAR-XX](linear-link))
+
+### Breaking Changes
+- Breaking change description (if major version)
+
+**Full Changelog**: https://github.com/faros-fde/faros-cli/compare/v1.1.1...v1.2.3
+```
+
+## Prerequisites (One-time Setup)
+
+### NPM Token
+
+1. Create automation token at [npmjs.com/settings/tokens](https://www.npmjs.com/settings/tokens)
+2. Add as `NPM_TOKEN` secret in [repository settings](https://github.com/faros-fde/faros-cli/settings/secrets/actions)
+
 ### GitHub Actions Workflow
 
-The workflow triggers on tags matching `v*` pattern:
+The workflow is already configured in [`.github/workflows/publish.yml`](.github/workflows/publish.yml):
 
 ```yaml
 on:
@@ -95,136 +126,66 @@ on:
       - 'v*'
 ```
 
-See [`.github/workflows/publish.yml`](.github/workflows/publish.yml) for the complete workflow.
+## Troubleshooting
 
-### Quick Release Script
+### Build Fails
 
-For convenience, use this one-liner:
+Check the [Actions tab](https://github.com/faros-fde/faros-cli/actions):
+- Ensure all tests pass locally first
+- Verify `NPM_TOKEN` secret is configured
+- Check if version already exists on npm
+
+### Tag Already Exists
 
 ```bash
-# Patch release
-npm version patch && git push && git push --tags
+# Delete local and remote tag
+git tag -d v1.2.3
+git push origin :refs/tags/v1.2.3
 
-# Minor release
-npm version minor && git push && git push --tags
-
-# Major release
-npm version major && git push && git push --tags
+# Then bump to a new version
+npm version patch -m "[FAR-XX] Release v%s"
+git push && git push --tags
 ```
 
-## Manual Publishing (Alternative)
+### Version Mismatch
 
-If you need to publish manually:
-
-### Prerequisites
+Ensure the git tag matches the version in `package.json`:
 
 ```bash
-# Log in to npm
-npm login
+# Check package.json version
+node -p "require('./package.json').version"
 
-# Verify authentication
-npm whoami
+# Check latest tag
+git describe --tags --abbrev=0
 ```
 
-### Publish
+## Manual Publishing (Emergency Only)
+
+If GitHub Actions is down:
 
 ```bash
-# Build first
+# Build
 npm run build
+
+# Login (requires npm account)
+npm login
 
 # Publish
 npm publish --access public
 ```
 
-## Troubleshooting
-
-### Error: 403 Forbidden
-
-You don't have permission to publish.
-
-**Solutions:**
-1. Verify you're logged in: `npm whoami`
-2. Check you're a member of the npm organization
-3. Verify `NPM_TOKEN` secret is set in GitHub
-
-### Error: Tag already exists
-
-A tag with this version already exists.
-
-**Solutions:**
-1. Delete the tag locally and remotely:
-   ```bash
-   git tag -d v1.2.3
-   git push origin :refs/tags/v1.2.3
-   ```
-2. Bump to a new version
-
-### GitHub Action Fails
-
-Check the workflow run in the Actions tab:
-- Verify `NPM_TOKEN` secret is configured
-- Check build logs for errors
-- Ensure package.json version matches tag
-
-## Security
-
-### 2FA (Highly Recommended)
-
-Enable two-factor authentication:
-
-```bash
-npm profile enable-2fa auth-and-writes
-```
-
-### NPM Tokens
-
-Use **Automation** tokens for CI/CD:
-1. Go to [npmjs.com/settings/tokens](https://www.npmjs.com/settings/tokens)
-2. Create new token → Automation
-3. Add as `NPM_TOKEN` in GitHub Secrets
-
-## Versioning Best Practices
-
-- Use semantic versioning (semver)
-- Update version before tagging
-- Never reuse version numbers
-- Document changes in git commit messages
-
 ## Checklist
 
-Before releasing:
-
-- [ ] All tests pass
-- [ ] Built successfully (`npm run build`)
-- [ ] Version bumped appropriately
+**Before Release:**
+- [ ] All tests pass (`npm test`)
+- [ ] Build succeeds (`npm run build`)  
+- [ ] Linear task created
 - [ ] No uncommitted changes
 - [ ] Reviewed changes since last release
 
-After releasing:
-
-- [ ] Verify on npmjs.com
-- [ ] Test installation: `npm install -g @faros-fde-sandbox/cli`
-- [ ] Check GitHub Actions workflow passed
-- [ ] Document release notes (if applicable)
-
-## Quick Reference
-
-```bash
-# Patch release (bug fixes)
-npm version patch && git push && git push --tags
-
-# Minor release (new features)
-npm version minor && git push && git push --tags
-
-# Major release (breaking changes)
-npm version major && git push && git push --tags
-
-# Check published version
-npm view @faros-fde-sandbox/cli version
-
-# Install globally
-npm install -g @faros-fde-sandbox/cli
-
-# View package page
-open https://www.npmjs.com/package/@faros-fde-sandbox/cli
-```
+**After Release:**
+- [ ] GitHub Actions workflow passed
+- [ ] Package published on [npmjs.com](https://www.npmjs.com/package/@faros-fde-sandbox/cli)
+- [ ] Installation works: `npm install -g @faros-fde-sandbox/cli@latest`
+- [ ] GitHub release created (optional)
+- [ ] Linear task marked as Done
