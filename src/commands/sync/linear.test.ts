@@ -47,25 +47,6 @@ describe('syncLinearCommand', () => {
     expect(apiKeyOption?.required).toBe(true);
   });
 
-  it.skip('should have cutoff-days option with default value', () => {
-    // TODO: Add default value to commander option or implement validation
-    const cmd = syncLinearCommand();
-    const options = cmd.options;
-    
-    const cutoffOption = options.find(opt => opt.long === '--cutoff-days');
-    expect(cutoffOption).toBeDefined();
-    expect(cutoffOption?.defaultValue).toBe(90);
-  });
-
-  it.skip('should have page-size option with default value', () => {
-    // TODO: Add default value to commander option or implement validation
-    const cmd = syncLinearCommand();
-    const options = cmd.options;
-    
-    const pageSizeOption = options.find(opt => opt.long === '--page-size');
-    expect(pageSizeOption).toBeDefined();
-    expect(pageSizeOption?.defaultValue).toBe(50);
-  });
 
   it('should have preview option', () => {
     const cmd = syncLinearCommand();
@@ -100,36 +81,6 @@ describe('syncLinearCommand', () => {
     });
   });
 
-  describe('help text', () => {
-    it.skip('should include usage examples', () => {
-      // TODO: Add examples to command help text
-      const cmd = syncLinearCommand();
-      const helpInfo = cmd.helpInformation();
-      
-      expect(helpInfo).toContain('Examples:');
-      expect(helpInfo).toContain('faros sync linear');
-      expect(helpInfo).toContain('--linear-api-key');
-    });
-
-    it.skip('should include Linear API documentation link', () => {
-      // TODO: Add API docs link to command help text
-      const cmd = syncLinearCommand();
-      const helpInfo = cmd.helpInformation();
-      
-      expect(helpInfo).toContain('https://linear.app/settings/api');
-    });
-
-    it.skip('should list synced data streams', () => {
-      // TODO: Add list of synced streams to command help text
-      const cmd = syncLinearCommand();
-      const helpInfo = cmd.helpInformation();
-      
-      expect(helpInfo).toContain('Teams');
-      expect(helpInfo).toContain('Projects');
-      expect(helpInfo).toContain('Issues');
-      expect(helpInfo).toContain('Users');
-    });
-  });
 
   describe('preview mode', () => {
     it('should support preview flag', () => {
