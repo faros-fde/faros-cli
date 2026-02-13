@@ -88,7 +88,6 @@ graph: default
 # Faros API configuration
 url: https://prod.api.faros.ai
 graph: default
-stagingGraph: default-staging
 origin: my-company-ci
 
 # Data sources (credentials in .env)
@@ -138,7 +137,6 @@ See `faros.config.example.yaml` for a complete template with detailed comments e
 |--------|------|---------|-------------|
 | `url` | string | `https://prod.api.faros.ai` | Faros API URL |
 | `graph` | string | `default` | Target graph name |
-| `stagingGraph` | string | `{graph}-staging` | Staging graph for dry runs |
 | `origin` | string | `faros-cli` | Origin identifier for events |
 
 ### Sources

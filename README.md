@@ -232,7 +232,6 @@ The CLI can be configured entirely through environment variables, which is ideal
 |----------|-------------|---------|---------|
 | `FAROS_URL` | Faros API URL | `https://prod.api.faros.ai` | `https://prod.api.faros.ai` |
 | `FAROS_GRAPH` | Target graph name | `default` | `my-graph` |
-| `FAROS_STAGING_GRAPH` | Staging graph for dry runs | `default-staging` | `my-graph-staging` |
 | `FAROS_ORIGIN` | Origin identifier for synced data | - | `my-company-ci` |
 
 #### Logging and Debug
@@ -250,7 +249,6 @@ Store non-sensitive configuration in `faros.config.yaml`:
 # Faros API configuration
 url: https://prod.api.faros.ai
 graph: default
-stagingGraph: default-staging
 origin: my-company-ci
 
 # Default values for commands
@@ -337,7 +335,6 @@ FAROS_API_KEY=your_api_key_here
 # Faros configuration
 FAROS_URL=https://prod.api.faros.ai
 FAROS_GRAPH=production
-FAROS_STAGING_GRAPH=production-staging
 FAROS_ORIGIN=github-actions
 
 # Logging
@@ -695,11 +692,8 @@ E2E tests validate the full CLI workflow by actually syncing test results to Far
 **Run E2E tests:**
 
 ```bash
-# Dry run (staging graph, recommended)
+# Run E2E tests
 FAROS_API_KEY=xxx ./scripts/e2e-test-sync.sh
-
-# Production sync (use with caution)
-DRY_RUN=false FAROS_API_KEY=xxx ./scripts/e2e-test-sync.sh
 ```
 
 **What's tested:**

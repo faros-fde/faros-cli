@@ -33,14 +33,11 @@ export FAROS_API_KEY="your_api_key_here"
 ```bash
 export FAROS_URL="https://prod.api.faros.ai"  # default
 export FAROS_GRAPH="your-graph-name"          # default: "default"
-export FAROS_STAGING_GRAPH="your-staging"     # default: "default-staging"
 ```
 
 ## Running E2E Tests
 
-### Dry Run Mode (Recommended)
-
-Syncs to staging graph without affecting production:
+Run the E2E test script:
 
 ```bash
 ./scripts/e2e-test-sync.sh
@@ -50,14 +47,6 @@ or
 
 ```bash
 FAROS_API_KEY=xxx ./scripts/e2e-test-sync.sh
-```
-
-### Production Mode
-
-⚠️  Syncs to production graph (use with caution):
-
-```bash
-DRY_RUN=false FAROS_API_KEY=xxx ./scripts/e2e-test-sync.sh
 ```
 
 ## What Gets Tested
@@ -98,8 +87,7 @@ After running the e2e tests, verify the data in Faros:
    - URL: `https://your-instance.faros.ai` (or `https://prod.api.faros.ai`)
 
 2. **Navigate to your graph**
-   - Production: `your-graph-name`
-   - Staging: `your-graph-name-staging` (if dry-run)
+   - Graph name: `your-graph-name`
 
 3. **Query for test execution records**
    ```graphql
@@ -203,7 +191,6 @@ jobs:
       - name: Run E2E tests
         env:
           FAROS_API_KEY: ${{ secrets.FAROS_API_KEY }}
-          DRY_RUN: true  # Always use staging in CI
         run: ./scripts/e2e-test-sync.sh
 ```
 
@@ -220,7 +207,6 @@ Store secrets securely:
 **Optional**:
 - `FAROS_URL`
 - `FAROS_GRAPH`
-- `FAROS_STAGING_GRAPH`
 
 ## Manual Testing
 
@@ -230,8 +216,7 @@ For quick manual tests, you can run individual sync commands:
 # Test with a single file
 node bin/faros sync tests test/fixtures/junit-pass.xml \
   --source "manual-test" \
-  --commit "GitHub://faros-fde/faros-cli/test" \
-  --dry-run
+  --commit "GitHub://faros-fde/faros-cli/test"
 
 # Test validation only (offline)
 node bin/faros sync tests test/fixtures/*.xml --validate
@@ -266,7 +251,6 @@ Then delete via Faros UI or API.
 
 ## Next Steps
 
-- **Production testing**: Run with `DRY_RUN=false` after validating staging
 - **Custom fixtures**: Add your own test result files to `test/fixtures/`
 - **Scheduled tests**: Set up cron job or scheduled CI workflow
 - **Monitoring**: Set up alerts for failed e2e tests

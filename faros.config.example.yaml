@@ -20,11 +20,6 @@ url: https://prod.api.faros.ai
 # Override with: FAROS_GRAPH environment variable or --graph flag
 graph: default
 
-# Staging graph name used for dry-run testing
-# Default: {graph}-staging
-# This is where --dry-run flag will sync data for verification
-stagingGraph: default-staging
-
 # Origin identifier for events
 # This helps identify the source of data in Faros
 # Default: faros-cli
@@ -123,7 +118,6 @@ logs:
 # $ faros sync linear
 # $ faros sync linear --streams issues,projects
 # $ faros sync linear --full-refresh
-# $ faros sync linear --dry-run
 #
 # Minimal Configuration:
 # ----------------------

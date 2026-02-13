@@ -154,7 +154,6 @@ These settings remain in `faros.config.json` (non-sensitive):
 
 - `url` - API URL (default is fine)
 - `graph` - Graph name (can be overridden)
-- `stagingGraph` - Staging graph name
 - `origin` - Origin identifier
 - `sources[].type` - Source type
 - `sources[].syncInterval` - Sync frequency
@@ -181,12 +180,7 @@ To silence the warning, migrate to the new format.
 faros sync tests *.xml --validate
 ```
 
-2. **Test dry run**:
-```bash
-faros sync tests *.xml --dry-run
-```
-
-3. **Verify credentials are hidden**:
+2. **Verify credentials are hidden**:
 ```bash
 faros --debug sync tests *.xml --validate 2>&1 | grep -i "api"
 # Should NOT show your actual API key

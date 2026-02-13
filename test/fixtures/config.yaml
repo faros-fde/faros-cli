@@ -1,6 +1,5 @@
 url: https://test.api.faros.ai
 graph: test-graph
-stagingGraph: test-graph-staging
 origin: test-cli
 
 defaults:
