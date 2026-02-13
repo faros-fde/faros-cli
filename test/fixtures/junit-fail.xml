@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="Test Results" tests="3" failures="1" errors="0" skipped="1" time="2.5">
+  <testsuite name="FailingTestSuite" tests="3" failures="1" errors="0" skipped="1" time="2.5" timestamp="2024-01-15T10:30:00">
+    <testcase name="testSuccess" classname="com.example.FailingTest" time="0.5"/>
+    <testcase name="testFailure" classname="com.example.FailingTest" time="1.0">
+      <failure message="Expected true but was false" type="AssertionError">
+        AssertionError: Expected true but was false
+        at FailingTest.testFailure(FailingTest.java:25)
+        at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+      </failure>
+    </testcase>
+    <testcase name="testSkipped" classname="com.example.FailingTest" time="0">
+      <skipped message="Test skipped"/>
+    </testcase>
+  </testsuite>
+</testsuites>

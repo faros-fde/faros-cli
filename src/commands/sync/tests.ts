@@ -7,13 +7,6 @@ import { loadConfig, mergeConfig, getStagingGraph } from '../../config/loader';
 import { createClient, sendEvent } from '../../lib/api/client';
 import { ui, isCI } from '../../lib/ui';
 import { SyncTestsOptions } from '../../types/config';
-import {
-  createS3Client,
-  parseS3Uri,
-  listS3Objects,
-  downloadS3Objects,
-  cleanupTempFiles,
-} from '../../lib/sources/s3';
 
 enum TestResultsFormat {
   Cucumber = 'cucumber',
@@ -73,58 +66,10 @@ async function processTestResults(
   const fileConfig = await loadConfig();
   const config = mergeConfig(fileConfig, options);
   
-  // Determine if paths contain S3 URIs
-  const hasS3Uri = paths.some(p => p.startsWith('s3://'));
-  let files: string[] = [];
-  let tempFiles: string[] = [];
+  // Local files only
+  const files = paths.flatMap(p => p.split(',').map(v => v.trim()));
   
   try {
-    // Handle S3 files
-    if (hasS3Uri) {
-      const spinner = ui.spinner('Fetching files from S3...');
-      spinner.start();
-      
-      const s3Uri = parseS3Uri(paths[0]); // Assume first path is S3 URI
-      const s3Client = createS3Client({
-        region: options.s3Region,
-        accessKeyId: options.s3AccessKeyId,
-        secretAccessKey: options.s3SecretAccessKey,
-        profile: options.s3Profile,
-      });
-      
-      // Determine if it's a single file or directory
-      const isSingleFile = s3Uri.key.endsWith('.xml') || s3Uri.key.includes('.');
-      let s3Keys: string[] = [];
-      
-      if (isSingleFile) {
-        s3Keys = [s3Uri.key];
-      } else {
-        s3Keys = await listS3Objects(
-          s3Client,
-          s3Uri.bucket,
-          s3Uri.key,
-          options.pattern
-        );
-      }
-      
-      spinner.succeed(`Found ${s3Keys.length} file(s) in S3`);
-      
-      if (s3Keys.length === 0) {
-        ui.log.warning('No files found matching criteria');
-        return;
-      }
-      
-      const downloadSpinner = ui.spinner(`Downloading ${s3Keys.length} file(s)...`);
-      downloadSpinner.start();
-      
-      tempFiles = await downloadS3Objects(s3Client, s3Uri.bucket, s3Keys);
-      files = tempFiles;
-      
-      downloadSpinner.succeed(`Downloaded ${files.length} file(s)`);
-    } else {
-      // Local files
-      files = paths.flatMap(p => p.split(',').map(v => v.trim()));
-    }
     
     // Parse test results
     const parseSpinner = ui.spinner('Parsing test results...');
@@ -301,11 +246,8 @@ async function processTestResults(
       console.log();
       console.log(chalk.dim('To sync to production, run without --dry-run flag'));
     }
-  } finally {
-    // Cleanup temp files
-    if (tempFiles.length > 0) {
-      cleanupTempFiles(tempFiles);
-    }
+  } catch (error: any) {
+    throw error;
   }
 }
 
@@ -314,7 +256,7 @@ export function syncTestsCommand(): Command {
   
   cmd
     .description('Sync test results (JUnit/TestNG/xUnit/Cucumber/Mocha) to Faros')
-    .argument('<paths...>', 'Path(s) to test result files or S3 URI (s3://bucket/path/)')
+    .argument('<paths...>', 'Path(s) to test result files')
     .addOption(
       new Option('--format <format>', 'Test results format')
         .choices(Object.values(TestResultsFormat))
@@ -330,11 +272,6 @@ export function syncTestsCommand(): Command {
     .option('--test-start <time>', 'Test start time (ISO-8601, epoch millis, or "Now")', 'now')
     .option('--test-end <time>', 'Test end time (ISO-8601, epoch millis, or "Now")', 'now')
     .option('--concurrency <number>', 'Number of concurrent uploads', parseInt, 8)
-    .option('--s3-region <region>', 'AWS region for S3')
-    .option('--s3-profile <profile>', 'AWS profile name')
-    .option('--s3-access-key-id <key>', 'AWS access key ID')
-    .option('--s3-secret-access-key <secret>', 'AWS secret access key')
-    .option('--pattern <regex>', 'Regex pattern to filter S3 objects')
     .option('--validate', 'Validate only, don\'t send to Faros (fast, offline)')
     .option('--preview', 'Show sample records without sending')
     .option('--dry-run', 'Sync to staging graph for verification')
@@ -342,9 +279,6 @@ export function syncTestsCommand(): Command {
 Examples:
   # Sync local test results
   $ faros sync tests test-results/*.xml --source "Jenkins" --commit "GitHub://org/repo/abc"
-  
-  # Sync from S3
-  $ faros sync tests s3://bucket/junit/ --pattern ".*\\.xml$" --source "Jenkins"
   
   # Validate before syncing
   $ faros sync tests *.xml --validate

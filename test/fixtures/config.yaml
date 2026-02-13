@@ -1,0 +1,12 @@
+url: https://test.api.faros.ai
+graph: test-graph
+stagingGraph: test-graph-staging
+origin: test-cli
+
+defaults:
+  testSource: Jenkins
+  testType: Integration
+  concurrency: 4
+
+logs:
+  level: debug

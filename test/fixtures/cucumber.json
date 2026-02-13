@@ -1,0 +1,67 @@
+[
+  {
+    "id": "login-feature",
+    "name": "Login Feature",
+    "description": "User login functionality",
+    "uri": "features/login.feature",
+    "elements": [
+      {
+        "id": "login-with-valid-credentials",
+        "name": "Login with valid credentials",
+        "type": "scenario",
+        "steps": [
+          {
+            "name": "Given I am on the login page",
+            "result": {
+              "status": "passed",
+              "duration": 123000000
+            }
+          },
+          {
+            "name": "When I enter valid credentials",
+            "result": {
+              "status": "passed",
+              "duration": 456000000
+            }
+          },
+          {
+            "name": "Then I should be logged in",
+            "result": {
+              "status": "passed",
+              "duration": 789000000
+            }
+          }
+        ]
+      },
+      {
+        "id": "login-with-invalid-credentials",
+        "name": "Login with invalid credentials",
+        "type": "scenario",
+        "steps": [
+          {
+            "name": "Given I am on the login page",
+            "result": {
+              "status": "passed",
+              "duration": 100000000
+            }
+          },
+          {
+            "name": "When I enter invalid credentials",
+            "result": {
+              "status": "passed",
+              "duration": 200000000
+            }
+          },
+          {
+            "name": "Then I should see an error message",
+            "result": {
+              "status": "failed",
+              "error_message": "Expected error message not found",
+              "duration": 300000000
+            }
+          }
+        ]
+      }
+    ]
+  }
+]

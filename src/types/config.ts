@@ -71,11 +71,6 @@ export interface SyncTestsOptions extends BaseCommandOptions {
   testStart?: string;
   testEnd?: string;
   concurrency?: number;
-  s3Region?: string;
-  s3Profile?: string;
-  s3AccessKeyId?: string;
-  s3SecretAccessKey?: string;
-  pattern?: string;
 }
 
 export interface SyncCICDOptions extends BaseCommandOptions {

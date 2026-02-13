@@ -87,14 +87,6 @@ faros sync tests test-results/*.xml \
   --commit "GitHub://myorg/myrepo/abc123"
 ```
 
-From S3:
-```bash
-faros sync tests s3://bucket/junit/ \
-  --pattern ".*\\.xml$" \
-  --s3-region us-east-1 \
-  --source "Jenkins"
-```
-
 Validate before syncing:
 ```bash
 faros sync tests *.xml --validate
@@ -156,15 +148,6 @@ The CLI can be configured entirely through environment variables, which is ideal
 | `FAROS_GRAPH` | Target graph name | `default` | `my-graph` |
 | `FAROS_STAGING_GRAPH` | Staging graph for dry runs | `default-staging` | `my-graph-staging` |
 | `FAROS_ORIGIN` | Origin identifier for synced data | - | `my-company-ci` |
-
-#### AWS Credentials (for S3 Test Results)
-
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `AWS_ACCESS_KEY_ID` | AWS access key | `AKIAIOSFODNN7EXAMPLE` |
-| `AWS_SECRET_ACCESS_KEY` | AWS secret key | `wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY` |
-| `AWS_REGION` | AWS region | `us-east-1` |
-| `AWS_SESSION_TOKEN` | AWS session token (for temporary credentials) | - |
 
 #### Logging and Debug
 
@@ -270,11 +253,6 @@ FAROS_URL=https://prod.api.faros.ai
 FAROS_GRAPH=production
 FAROS_STAGING_GRAPH=production-staging
 FAROS_ORIGIN=github-actions
-
-# AWS (for S3 test results)
-AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
-AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
-AWS_REGION=us-east-1
 
 # Logging
 FAROS_LOG_LEVEL=info
@@ -580,6 +558,46 @@ npm test
 # Lint
 npm run lint
 ```
+
+### Testing
+
+The CLI has comprehensive test coverage to ensure reliability:
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage report
+npm run test:coverage
+
+# Run tests with UI
+npm run test:ui
+```
+
+**Test Structure:**
+- `src/**/*.test.ts` - Unit and integration tests alongside source files
+- `test/fixtures/` - Sample test result files for various formats
+- `test/utils/` - Test utilities and helpers
+
+**Coverage Thresholds:**
+- Core modules (config, API client, logger): >80% coverage
+- Critical paths enforce per-file thresholds
+- Overall project: >25% (command handlers require E2E testing)
+
+**What's Tested:**
+- ✅ Configuration loading and priority (CLI > env > file > defaults)
+- ✅ API client with retry logic and error handling
+- ✅ Logger with redaction of sensitive data
+- ✅ Test result parsing (JUnit, TestNG, xUnit, Cucumber, Mocha)
+- ✅ CI/CD event creation and validation
+- ✅ URI format validation
+- ✅ Dry-run and validation modes
+
+**Continuous Integration:**
+Tests run automatically on every push and pull request via GitHub Actions. Coverage reports are uploaded to Codecov.
 
 ### Publishing
 

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testng-results total="2" passed="2" failed="0" skipped="0">
+  <suite name="Test Suite" duration-ms="1234">
+    <test name="Test">
+      <class name="com.example.TestNGTest">
+        <test-method name="testMethod1" status="PASS" duration-ms="567" started-at="2024-01-15T10:30:00Z"/>
+        <test-method name="testMethod2" status="PASS" duration-ms="667" started-at="2024-01-15T10:30:01Z"/>
+      </class>
+    </test>
+  </suite>
+</testng-results>

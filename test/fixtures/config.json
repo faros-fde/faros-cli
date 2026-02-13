@@ -1,0 +1,8 @@
+{
+  "url": "https://test.api.faros.ai",
+  "graph": "test-graph",
+  "origin": "test-cli",
+  "defaults": {
+    "concurrency": 8
+  }
+}

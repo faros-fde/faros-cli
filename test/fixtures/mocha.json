@@ -1,0 +1,42 @@
+{
+  "stats": {
+    "suites": 1,
+    "tests": 3,
+    "passes": 2,
+    "pending": 0,
+    "failures": 1,
+    "start": "2024-01-15T10:30:00.000Z",
+    "end": "2024-01-15T10:30:02.000Z",
+    "duration": 2000
+  },
+  "tests": [
+    {
+      "title": "should pass test 1",
+      "fullTitle": "Test Suite should pass test 1",
+      "duration": 500,
+      "state": "passed"
+    },
+    {
+      "title": "should pass test 2",
+      "fullTitle": "Test Suite should pass test 2",
+      "duration": 600,
+      "state": "passed"
+    },
+    {
+      "title": "should fail test",
+      "fullTitle": "Test Suite should fail test",
+      "duration": 900,
+      "state": "failed",
+      "err": {
+        "message": "Expected 2 to equal 3",
+        "stack": "AssertionError: Expected 2 to equal 3\\n    at Context.test (test.js:10:5)"
+      }
+    }
+  ],
+  "suites": [
+    {
+      "title": "Test Suite",
+      "tests": [0, 1, 2]
+    }
+  ]
+}
