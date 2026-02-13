@@ -136,11 +136,11 @@ async function syncLinearData(options: SyncLinearOptions): Promise<void> {
     console.log();
     console.log(chalk.blue('Source:'));
     console.log(`  Image: farossam/airbyte-linear-source:latest`);
-    console.log(`  API Key: ${linearApiKey.substring(0, 10)}...`);
     console.log(`  Cutoff Days: ${cutoffDays}`);
     console.log(`  Page Size: ${pageSize}`);
     console.log();
     console.log(chalk.blue('Destination:'));
+    console.log(`  Image: farosai/airbyte-faros-destination:latest`);
     console.log(`  Graph: ${config.graph}`);
     console.log(`  URL: ${config.url}`);
     console.log(`  Origin: ${config.origin}`);
