@@ -5,6 +5,27 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
+  workflow_dispatch:
+    inputs:
+      node-version:
+        description: 'Node.js version to test'
+        required: false
+        default: 'both'
+        type: choice
+        options:
+          - '18'
+          - '20'
+          - 'both'
+      upload-coverage:
+        description: 'Upload coverage reports'
+        required: false
+        default: true
+        type: boolean
+      run-linter:
+        description: 'Run linter'
+        required: false
+        default: true
+        type: boolean
 
 jobs:
   test:
@@ -12,7 +33,7 @@ jobs:
     
     strategy:
       matrix:
-        node-version: [18, 20]
+        node-version: ${{ (github.event_name == 'workflow_dispatch' && inputs.node-version != 'both') && fromJSON(format('[{0}]', inputs.node-version)) || fromJSON('[18, 20]') }}
     
     steps:
       - name: Checkout code
@@ -28,6 +49,7 @@ jobs:
         run: npm ci
       
       - name: Run linter
+        if: github.event_name != 'workflow_dispatch' || inputs.run-linter
         run: npm run lint
       
       - name: Run tests
@@ -38,7 +60,7 @@ jobs:
       
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
-        if: matrix.node-version == 20
+        if: matrix.node-version == 20 && (github.event_name != 'workflow_dispatch' || inputs.upload-coverage)
         with:
           files: ./coverage/lcov.info
           flags: unittests
@@ -48,7 +70,7 @@ jobs:
       
       - name: Archive coverage artifacts
         uses: actions/upload-artifact@v4
-        if: matrix.node-version == 20
+        if: matrix.node-version == 20 && (github.event_name != 'workflow_dispatch' || inputs.upload-coverage)
         with:
           name: coverage-report
           path: coverage/
