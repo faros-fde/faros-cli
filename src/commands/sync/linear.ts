@@ -62,16 +62,11 @@ function createTempConfig(options: SyncLinearOptions, config: any): string {
 
 async function runAirbyteSync(configPath: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    const airbyteLocalPath = path.join(__dirname, '../../../../../airbyte-local-cli/airbyte-local.sh');
+    // Find the installed airbyte-local-cli package entry point
+    const airbyteLocalPath = require.resolve('@faros-fde-sandbox/airbyte-local-cli');
     
-    // Check if airbyte-local.sh exists
-    if (!fs.existsSync(airbyteLocalPath)) {
-      reject(new Error(`airbyte-local CLI not found at ${airbyteLocalPath}. Please ensure airbyte-local-cli is installed.`));
-      return;
-    }
-
-    const args = ['--config', configPath];
-    const child = spawn(airbyteLocalPath, args, {
+    const args = [airbyteLocalPath, '--config', configPath];
+    const child = spawn(process.execPath, args, {
       stdio: ['inherit', 'pipe', 'pipe'],
     });
 
@@ -81,7 +76,6 @@ async function runAirbyteSync(configPath: string): Promise<void> {
     child.stdout?.on('data', (data) => {
       const text = data.toString();
       stdout += text;
-      // Forward output to user
       process.stdout.write(text);
     });
 
@@ -92,14 +86,14 @@ async function runAirbyteSync(configPath: string): Promise<void> {
     });
 
     child.on('error', (error) => {
-      reject(new Error(`Failed to run airbyte-local: ${error.message}`));
+      reject(new Error(`Failed to run airbyte-local-cli: ${error.message}`));
     });
 
     child.on('close', (code) => {
       if (code === 0) {
         resolve();
       } else {
-        reject(new Error(`airbyte-local exited with code ${code}`));
+        reject(new Error(`Airbyte sync failed with exit code ${code}`));
       }
     });
   });
