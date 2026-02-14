@@ -65,7 +65,7 @@ async function runAirbyteSync(configPath: string): Promise<void> {
     // Find the installed airbyte-local-cli package entry point
     const airbyteLocalPath = require.resolve('@faros-fde-sandbox/airbyte-local-cli');
     
-    const args = [airbyteLocalPath, '--config', configPath];
+    const args = [airbyteLocalPath, '--config-file', configPath];
     const child = spawn(process.execPath, args, {
       stdio: ['inherit', 'pipe', 'pipe'],
     });
