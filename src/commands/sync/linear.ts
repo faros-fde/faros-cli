@@ -36,7 +36,7 @@ function createTempConfig(options: SyncLinearOptions, config: any): string {
 
   const airbyteConfig: LinearConfig = {
     src: {
-      image: 'farossam/airbyte-linear-source:latest',
+      image: 'farossam/airbyte-linear-source:1.0.1',
       config: {
         api_key: options.linearApiKey || '',
         cutoff_days: options.cutoffDays || 90,
@@ -129,7 +129,7 @@ async function syncLinearData(options: SyncLinearOptions): Promise<void> {
     console.log(chalk.bold('Linear Sync Configuration:'));
     console.log();
     console.log(chalk.blue('Source:'));
-    console.log(`  Image: farossam/airbyte-linear-source:latest`);
+    console.log(`  Image: farossam/airbyte-linear-source:1.0.1`);
     console.log(`  Cutoff Days: ${cutoffDays}`);
     console.log(`  Page Size: ${pageSize}`);
     console.log();
