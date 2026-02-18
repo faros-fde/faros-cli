@@ -9,6 +9,7 @@ coverage/
 .env
 .env.local
 .env.*.local
+.npmrc
 
 # Config files (may contain sensitive data)
 faros.config.yaml
