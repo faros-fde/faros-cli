@@ -2,6 +2,7 @@ import { cosmiconfig } from 'cosmiconfig';
 import { ConfigSchema, Config } from '../types/config';
 import dotenv from 'dotenv';
 import path from 'path';
+import { load as parseYaml } from 'js-yaml';
 import { ui } from '../lib/ui';
 import * as fs from 'fs';
 
@@ -33,18 +34,33 @@ const explorer = cosmiconfig('faros', {
   ],
 });
 
-export async function loadConfig(): Promise<Config | null> {
+export interface LoadConfigResult {
+  config: Config;
+  isDefault: boolean;
+}
+
+export async function loadConfig(): Promise<LoadConfigResult | null> {
   try {
+    // First, try to find user config in current directory
     const result = await explorer.search();
     
-    if (!result || result.isEmpty) {
-      return null;
+    if (result && !result.isEmpty) {
+      // Validate user config
+      const config = ConfigSchema.parse(result.config);
+      return { config, isDefault: false };
     }
     
-    // Validate config
-    const config = ConfigSchema.parse(result.config);
+    // If no user config found, use package default
+    const packageDefaultPath = path.join(__dirname, '../../faros.config.yaml');
     
-    return config;
+    if (fs.existsSync(packageDefaultPath)) {
+      const defaultConfigContent = fs.readFileSync(packageDefaultPath, 'utf-8');
+      const defaultConfig = parseYaml(defaultConfigContent);
+      const config = ConfigSchema.parse(defaultConfig);
+      return { config, isDefault: true };
+    }
+    
+    return null;
   } catch (error: any) {
     if (error.name === 'ZodError') {
       ui.log.error('Invalid configuration file:');
@@ -60,15 +76,22 @@ export async function loadConfig(): Promise<Config | null> {
 }
 
 export function mergeConfig(
-  fileConfig: Config | null,
+  configResult: LoadConfigResult | null,
   cliOptions: any,
   envVars: NodeJS.ProcessEnv = process.env
 ): Config {
-  if (!fileConfig) {
+  if (!configResult) {
     throw new Error(
       'Configuration file not found. Please create a faros.config.yaml file. ' +
       'See https://github.com/faros-fde/faros-cli for configuration template.'
     );
+  }
+
+  const fileConfig = configResult.config;
+  
+  // Show info message if using default config
+  if (configResult.isDefault) {
+    ui.log.info('Using default configuration. Create faros.config.yaml to customize.');
   }
 
   const merged: any = {

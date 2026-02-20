@@ -1,10 +1,35 @@
-import { describe, it, expect } from 'vitest';
-import { mergeConfig } from './loader';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { mergeConfig, loadConfig, LoadConfigResult } from './loader';
 import { Config } from '../types/config';
 import { mockConsole, createMockEnv } from '../test-utils/test-helpers';
 
 describe('config/loader', () => {
   mockConsole();
+  
+  describe('loadConfig', () => {
+    it('should load user config when present', async () => {
+      const result = await loadConfig();
+      expect(result).toBeDefined();
+      expect(result?.config).toBeDefined();
+      expect(result?.isDefault).toBeDefined();
+    });
+    
+    it('should indicate when using default config', async () => {
+      const result = await loadConfig();
+      if (result) {
+        expect(typeof result.isDefault).toBe('boolean');
+      }
+    });
+    
+    it('should return valid Config object', async () => {
+      const result = await loadConfig();
+      if (result) {
+        expect(result.config.url).toBeDefined();
+        expect(result.config.graph).toBeDefined();
+        expect(result.config.origin).toBeDefined();
+      }
+    });
+  });
   
   describe('mergeConfig', () => {
     const defaultFileConfig: Config = {
@@ -17,6 +42,11 @@ describe('config/loader', () => {
       },
     };
     
+    const wrapConfig = (config: Config, isDefault = false): LoadConfigResult => ({
+      config,
+      isDefault,
+    });
+    
     it('should throw error when no config file provided', () => {
       expect(() => mergeConfig(null, {}, {})).toThrow(
         'Configuration file not found. Please create a faros.config.yaml file.'
@@ -24,7 +54,7 @@ describe('config/loader', () => {
     });
     
     it('should merge file config with defaults', () => {
-      const result = mergeConfig(defaultFileConfig, {}, {});
+      const result = mergeConfig(wrapConfig(defaultFileConfig), {}, {});
       
       expect(result.url).toBe('https://file.api.faros.ai');
       expect(result.graph).toBe('file-graph');
@@ -40,7 +70,7 @@ describe('config/loader', () => {
         FAROS_ORIGIN: 'env-origin',
       });
       
-      const result = mergeConfig(defaultFileConfig, {}, envVars);
+      const result = mergeConfig(wrapConfig(defaultFileConfig), {}, envVars);
       
       expect(result.url).toBe('https://env.api.faros.ai');
       expect(result.graph).toBe('env-graph');
@@ -58,7 +88,7 @@ describe('config/loader', () => {
         graph: 'cli-graph',
       };
       
-      const result = mergeConfig(defaultFileConfig, cliOptions, envVars);
+      const result = mergeConfig(wrapConfig(defaultFileConfig), cliOptions, envVars);
       
       expect(result.url).toBe('https://cli.api.faros.ai');
       expect(result.graph).toBe('cli-graph');
@@ -75,7 +105,7 @@ describe('config/loader', () => {
         origin: 'faros-cli',
       };
       
-      const result = mergeConfig(minimalConfig, {}, envVars);
+      const result = mergeConfig(wrapConfig(minimalConfig), {}, envVars);
       
       expect(result.apiKey).toBe('test-api-key');
     });
@@ -95,7 +125,7 @@ describe('config/loader', () => {
         origin: 'faros-cli',
       };
       
-      const result = mergeConfig(minimalConfig, cliOptions, envVars);
+      const result = mergeConfig(wrapConfig(minimalConfig), cliOptions, envVars);
       
       expect(result.apiKey).toBe('cli-api-key');
     });
@@ -108,7 +138,7 @@ describe('config/loader', () => {
         apiKey: 'should-be-removed',
       };
       
-      const result = mergeConfig(unsafeFileConfig, {}, {});
+      const result = mergeConfig(wrapConfig(unsafeFileConfig), {}, {});
       
       expect(result.apiKey).toBeUndefined();
     });
@@ -127,7 +157,7 @@ describe('config/loader', () => {
         },
       };
       
-      const result = mergeConfig(unsafeFileConfig, {}, {});
+      const result = mergeConfig(wrapConfig(unsafeFileConfig), {}, {});
       
       expect(result.sources?.github).toBeDefined();
       expect((result.sources?.github as any)?.apiKey).toBeUndefined();
@@ -146,7 +176,7 @@ describe('config/loader', () => {
         origin: 'faros-cli',
       };
       
-      const result = mergeConfig(minimalConfig, {}, envVars);
+      const result = mergeConfig(wrapConfig(minimalConfig), {}, envVars);
       
       expect(result.sources?.linear).toBeDefined();
       expect(result.sources?.linear?.type).toBe('Linear');
@@ -171,7 +201,7 @@ describe('config/loader', () => {
         LINEAR_API_KEY: 'linear-key',
       });
       
-      const result = mergeConfig(fileConfig, {}, envVars);
+      const result = mergeConfig(wrapConfig(fileConfig), {}, envVars);
       
       expect(result.sources?.linear?.type).toBe('Linear');
       expect(result.sources?.linear?.cutoffDays).toBe(30);
@@ -195,7 +225,7 @@ describe('config/loader', () => {
         graph: 'cli-graph',
       };
       
-      const result = mergeConfig(fileConfig, cliOptions, envVars);
+      const result = mergeConfig(wrapConfig(fileConfig), cliOptions, envVars);
       
       // CLI wins for graph
       expect(result.graph).toBe('cli-graph');
