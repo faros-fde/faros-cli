@@ -15,6 +15,8 @@ interface LinearConfig {
     config: {
       api_key: string;
       cutoff_days?: number;
+      start_date?: string;
+      end_date?: string;
       page_size?: number;
     };
   };
@@ -36,14 +38,28 @@ function createTempConfig(options: SyncLinearOptions, config: any): string {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'faros-linear-'));
   const configPath = path.join(tempDir, 'faros_airbyte_cli_config.json');
 
+  // Build source config with date filtering
+  const srcConfig: any = {
+    api_key: options.linearApiKey || '',
+    page_size: options.pageSize || 50,
+  };
+
+  // Date filtering: use startDate/endDate if provided, otherwise use cutoffDays
+  if (options.startDate) {
+    srcConfig.start_date = options.startDate;
+  }
+  if (options.endDate) {
+    srcConfig.end_date = options.endDate;
+  }
+  // Only use cutoff_days if no explicit dates provided
+  if (!options.startDate && !options.endDate) {
+    srcConfig.cutoff_days = options.cutoffDays || 90;
+  }
+
   const airbyteConfig: LinearConfig = {
     src: {
       image: 'farossam/airbyte-linear-source:1.0.1',
-      config: {
-        api_key: options.linearApiKey || '',
-        cutoff_days: options.cutoffDays || 90,
-        page_size: options.pageSize || 50,
-      },
+      config: srcConfig,
     },
     dst: {
       image: 'farossam/airbyte-faros-destination:linear',
@@ -164,9 +180,11 @@ async function syncLinearData(options: SyncLinearOptions): Promise<void> {
     throw new Error('Origin is required. Set FAROS_ORIGIN environment variable or configure in faros.config.yaml.');
   }
 
-  // Get cutoff days and page size from options or config file defaults
+  // Get date filtering options from CLI, config file, or defaults
   const linearSource = config.sources?.linear;
   const cutoffDays = options.cutoffDays || linearSource?.cutoffDays || 90;
+  const startDate = options.startDate || linearSource?.startDate;
+  const endDate = options.endDate || linearSource?.endDate;
   const pageSize = options.pageSize || linearSource?.pageSize || 50;
 
   // Preview mode
@@ -176,7 +194,13 @@ async function syncLinearData(options: SyncLinearOptions): Promise<void> {
     console.log();
     console.log(chalk.blue('Source:'));
     console.log(`  Image: farossam/airbyte-linear-source:1.0.1`);
-    console.log(`  Cutoff Days: ${cutoffDays}`);
+    
+    // Show date filtering method
+    if (startDate || endDate) {
+      console.log(`  Date Range: ${startDate || '(beginning)'} to ${endDate || '(now)'}`);
+    } else {
+      console.log(`  Cutoff Days: ${cutoffDays}`);
+    }
     console.log(`  Page Size: ${pageSize}`);
     console.log();
     console.log(chalk.blue('Destination:'));
@@ -206,6 +230,8 @@ async function syncLinearData(options: SyncLinearOptions): Promise<void> {
       ...options,
       linearApiKey,
       cutoffDays,
+      startDate,
+      endDate,
       pageSize,
     };
     configPath = createTempConfig(tempOptions, config);
@@ -282,6 +308,8 @@ export function syncLinearCommand(): Command {
     .description('Sync Linear issues, projects, teams, and users to Faros')
     .option('--linear-api-key <key>', 'Linear API key (or set LINEAR_API_KEY env var)')
     .option('--cutoff-days <days>', 'Fetch issues updated in the last N days', parseInt)
+    .option('--start-date <date>', 'Start date for fetching data (YYYY-MM-DD format)')
+    .option('--end-date <date>', 'End date for fetching data (YYYY-MM-DD format)')
     .option('--page-size <size>', 'Number of records per API call (1-250)', parseInt)
     .option('--preview', 'Show sync configuration without executing')
     .addHelpText('after', `
@@ -295,6 +323,9 @@ Examples:
 
   # Sync only recent issues (last 30 days)
   $ faros sync linear --cutoff-days 30
+
+  # Or use explicit date range
+  $ faros sync linear --start-date 2024-01-01 --end-date 2024-12-31
 
   # Preview configuration before syncing
   $ faros sync linear --preview
