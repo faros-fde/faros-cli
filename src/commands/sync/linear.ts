@@ -52,7 +52,7 @@ function createTempConfig(options: SyncLinearOptions, config: any): string {
           graph: config.graph,
           api_url: config.url,
         },
-        origin: config.origin || 'faros-cli',
+        origin: config.origin,
         accept_input_records_origin: false,
       },
     },
@@ -118,6 +118,10 @@ async function syncLinearData(options: SyncLinearOptions): Promise<void> {
 
   if (!config.graph) {
     throw new Error('Faros graph is required. Set FAROS_GRAPH environment variable or use --graph.');
+  }
+
+  if (!config.origin) {
+    throw new Error('Origin is required. Set FAROS_ORIGIN environment variable or configure in faros.config.yaml.');
   }
 
   // Get cutoff days and page size from options or config file defaults
