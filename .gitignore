@@ -12,8 +12,6 @@ coverage/
 .npmrc
 
 # Config files (may contain sensitive data)
-faros.config.yaml
-faros.config.yml
 faros.config.json
 .farosrc.yaml
 .farosrc.yml

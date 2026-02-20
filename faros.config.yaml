@@ -1,0 +1,40 @@
+# ==============================================================================
+# Core Settings
+# ==============================================================================
+
+# Faros API URL
+url: https://prod.api.faros.ai
+
+# Target graph name where data will be synced
+graph: default
+
+# Origin identifier for events
+origin: faros-cli
+
+# ==============================================================================
+# Data Sources
+# ==============================================================================
+
+sources:
+  linear:
+    type: Linear
+    # Only fetch data updated in the last N days
+    cutoffDays: 180
+    # Number of records per API call (1-250)
+    pageSize: 50
+    # Or use explicit date range (overrides cutoffDays):
+    # startDate: "2024-01-01"
+    # endDate: "2025-01-01"
+    connectionName: faros-cli-linear
+    srcImage: farossam/airbyte-linear-source
+    dstImage: farossam/airbyte-faros-destination
+  
+# ==============================================================================
+# Logging
+# ==============================================================================
+
+logs:
+  # Log level: debug, info, warn, error
+  # Logs are written to ./faros.log in the working directory.
+  # View with: faros logs
+  level: info

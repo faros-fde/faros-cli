@@ -41,7 +41,7 @@ function createTempConfig(options: SyncLinearOptions, config: any): string {
   // Build source config with date filtering
   const srcConfig: any = {
     api_key: options.linearApiKey || '',
-    page_size: options.pageSize || 50,
+    page_size: options.pageSize,
   };
 
   // Date filtering: use startDate/endDate if provided, otherwise use cutoffDays
@@ -53,7 +53,7 @@ function createTempConfig(options: SyncLinearOptions, config: any): string {
   }
   // Only use cutoff_days if no explicit dates provided
   if (!options.startDate && !options.endDate) {
-    srcConfig.cutoff_days = options.cutoffDays || 90;
+    srcConfig.cutoff_days = options.cutoffDays;
   }
 
   const airbyteConfig: LinearConfig = {
@@ -180,12 +180,26 @@ async function syncLinearData(options: SyncLinearOptions): Promise<void> {
     throw new Error('Origin is required. Set FAROS_ORIGIN environment variable or configure in faros.config.yaml.');
   }
 
-  // Get date filtering options from CLI, config file, or defaults
+  // Get date filtering options from CLI or config file
   const linearSource = config.sources?.linear;
-  const cutoffDays = options.cutoffDays || linearSource?.cutoffDays || 90;
+  const cutoffDays = options.cutoffDays || linearSource?.cutoffDays;
   const startDate = options.startDate || linearSource?.startDate;
   const endDate = options.endDate || linearSource?.endDate;
-  const pageSize = options.pageSize || linearSource?.pageSize || 50;
+  const pageSize = options.pageSize || linearSource?.pageSize;
+
+  // Validate required Linear source configuration
+  if (!linearSource) {
+    throw new Error('Linear source configuration not found in faros.config.yaml. Add a "sources.linear" section.');
+  }
+
+  if (!pageSize) {
+    throw new Error('Linear pageSize is required. Set in faros.config.yaml under sources.linear.pageSize or use --page-size.');
+  }
+
+  // Require either date range OR cutoffDays
+  if (!startDate && !endDate && !cutoffDays) {
+    throw new Error('Linear date filtering is required. Set cutoffDays in faros.config.yaml or use --cutoff-days / --start-date.');
+  }
 
   // Preview mode
   if (options.preview) {
@@ -331,20 +345,20 @@ Examples:
   $ faros sync linear --preview
 
 Configuration:
+  Requires faros.config.yaml with Linear source configuration.
   The command reads configuration from multiple sources (in order of precedence):
   1. CLI options (--linear-api-key, --cutoff-days, etc.)
   2. Environment variables (LINEAR_API_KEY, FAROS_API_KEY, FAROS_GRAPH)
-  3. Config file (faros.config.yaml)
-  4. Defaults (cutoff-days: 90, page-size: 50)
+  3. Config file (faros.config.yaml) - required
 
   Example faros.config.yaml:
     url: https://prod.api.faros.ai
     graph: default
-    origin: my-company-ci
+    origin: faros-cli
     sources:
       linear:
-        cutoffDays: 30
-        pageSize: 100
+        cutoffDays: 180  # required: days to look back
+        pageSize: 50     # required: records per API call
 
 Notes:
   - Linear API key can be generated at https://linear.app/settings/api
