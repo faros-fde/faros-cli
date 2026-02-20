@@ -17,13 +17,10 @@ describe('config/loader', () => {
       },
     };
     
-    it('should use default values when no config provided', () => {
-      const result = mergeConfig(null, {}, {});
-      
-      expect(result.url).toBe('https://prod.api.faros.ai');
-      expect(result.graph).toBe('default');
-      expect(result.origin).toBe('faros-cli');
-      expect(result.defaults?.concurrency).toBe(8);
+    it('should throw error when no config file provided', () => {
+      expect(() => mergeConfig(null, {}, {})).toThrow(
+        'Configuration file not found. Please create a faros.config.yaml file.'
+      );
     });
     
     it('should merge file config with defaults', () => {
@@ -72,7 +69,13 @@ describe('config/loader', () => {
         FAROS_API_KEY: 'test-api-key',
       });
       
-      const result = mergeConfig(null, {}, envVars);
+      const minimalConfig: Config = {
+        url: 'https://prod.api.faros.ai',
+        graph: 'default',
+        origin: 'faros-cli',
+      };
+      
+      const result = mergeConfig(minimalConfig, {}, envVars);
       
       expect(result.apiKey).toBe('test-api-key');
     });
@@ -86,7 +89,13 @@ describe('config/loader', () => {
         apiKey: 'cli-api-key',
       };
       
-      const result = mergeConfig(null, cliOptions, envVars);
+      const minimalConfig: Config = {
+        url: 'https://prod.api.faros.ai',
+        graph: 'default',
+        origin: 'faros-cli',
+      };
+      
+      const result = mergeConfig(minimalConfig, cliOptions, envVars);
       
       expect(result.apiKey).toBe('cli-api-key');
     });
@@ -131,7 +140,13 @@ describe('config/loader', () => {
         GITHUB_TOKEN: 'github-token',
       });
       
-      const result = mergeConfig(null, {}, envVars);
+      const minimalConfig: Config = {
+        url: 'https://prod.api.faros.ai',
+        graph: 'default',
+        origin: 'faros-cli',
+      };
+      
+      const result = mergeConfig(minimalConfig, {}, envVars);
       
       expect(result.sources?.linear).toBeDefined();
       expect(result.sources?.linear?.type).toBe('Linear');
