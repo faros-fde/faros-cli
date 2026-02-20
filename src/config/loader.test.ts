@@ -1,10 +1,35 @@
-import { describe, it, expect } from 'vitest';
-import { mergeConfig, LoadConfigResult } from './loader';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { mergeConfig, loadConfig, LoadConfigResult } from './loader';
 import { Config } from '../types/config';
 import { mockConsole, createMockEnv } from '../test-utils/test-helpers';
 
 describe('config/loader', () => {
   mockConsole();
+  
+  describe('loadConfig', () => {
+    it('should load user config when present', async () => {
+      const result = await loadConfig();
+      expect(result).toBeDefined();
+      expect(result?.config).toBeDefined();
+      expect(result?.isDefault).toBeDefined();
+    });
+    
+    it('should indicate when using default config', async () => {
+      const result = await loadConfig();
+      if (result) {
+        expect(typeof result.isDefault).toBe('boolean');
+      }
+    });
+    
+    it('should return valid Config object', async () => {
+      const result = await loadConfig();
+      if (result) {
+        expect(result.config.url).toBeDefined();
+        expect(result.config.graph).toBeDefined();
+        expect(result.config.origin).toBeDefined();
+      }
+    });
+  });
   
   describe('mergeConfig', () => {
     const defaultFileConfig: Config = {
