@@ -44,7 +44,7 @@ function createTempConfig(options: SyncLinearOptions, config: any): string {
       },
     },
     dst: {
-      image: 'farosai/airbyte-faros-destination:latest',
+      image: 'farossam/airbyte-faros-destination:linear',
       config: {
         edition_configs: {
           api_key: config.apiKey,
@@ -134,7 +134,7 @@ async function syncLinearData(options: SyncLinearOptions): Promise<void> {
     console.log(`  Page Size: ${pageSize}`);
     console.log();
     console.log(chalk.blue('Destination:'));
-    console.log(`  Image: farosai/airbyte-faros-destination:latest`);
+    console.log(`  Image: farossam/airbyte-faros-destination:linear`);
     console.log(`  Graph: ${config.graph}`);
     console.log(`  URL: ${config.url}`);
     console.log(`  Origin: ${config.origin}`);
