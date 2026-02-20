@@ -4,6 +4,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import updateNotifier from 'update-notifier';
 import { syncCommand } from './commands/sync';
+import { logsCommand } from './commands/logs';
 import { ui } from './lib/ui';
 import { initLogger } from './lib/logger';
 import { readFileSync } from 'fs';
@@ -68,6 +69,7 @@ ${chalk.bold('Support:')} https://community.faros.ai
   
   // Register commands
   program.addCommand(syncCommand());
+  program.addCommand(logsCommand());
   
   // Parse arguments
   await program.parseAsync(process.argv);

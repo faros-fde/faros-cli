@@ -13,6 +13,7 @@ CLI for Faros AI - sync test results, CI/CD events, and Linear data.
   - [faros sync tests](#faros-sync-tests)
   - [faros sync ci-cd](#faros-sync-ci-cd)
   - [faros sync linear](#faros-sync-linear)
+  - [faros logs](#faros-logs)
 - [Configuration](#configuration)
   - [Environment Variables](#environment-variables)
   - [Configuration File](#configuration-file)
@@ -204,6 +205,58 @@ faros sync linear --preview
 - Issues are filtered by update date using the `--cutoff-days` parameter
 - The connector uses pagination to handle large datasets
 - All timestamps and relationships are preserved
+
+### `faros logs`
+
+View and manage the CLI log file.
+
+**Usage:**
+```bash
+faros logs [options]
+```
+
+**Options:**
+- `-f, --tail` - Follow log file in real-time (like `tail -f`)
+- `-n, --lines <count>` - Show last n lines
+- `--clear` - Clear the log file
+- `--path` - Show log file path
+
+**Examples:**
+
+View entire log file:
+```bash
+faros logs
+```
+
+Follow log file in real-time:
+```bash
+faros logs --tail
+```
+
+Show last 100 lines:
+```bash
+faros logs --lines 100
+```
+
+Clear the log file:
+```bash
+faros logs --clear
+```
+
+Show log file path:
+```bash
+faros logs --path
+```
+
+**Log File Location:**
+- Logs are written to `./faros.log` in the working directory
+- Log file is created automatically on first CLI operation
+- Use `faros logs --clear` to clean up old logs
+
+**Log Format:**
+- JSON format (one entry per line)
+- Includes timestamp, level, process ID, and message
+- Credentials are automatically redacted
 
 ## Configuration
 
