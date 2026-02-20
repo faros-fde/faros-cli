@@ -205,7 +205,7 @@ async function syncLinearData(options: SyncLinearOptions): Promise<void> {
   }
 
   if (!dstImage) {
-    throw new Error('Linear dstImage is required. Set in faros.config.yaml under sources.linear.dstImage (e.g., farosfde/airbyte-faros-destination:linear).');
+    throw new Error('Linear dstImage is required. Set in faros.config.yaml under sources.linear.dstImage (e.g., farosfde/airbyte-faros-destination:1.0.1).');
   }
 
   // Require either date range OR cutoffDays

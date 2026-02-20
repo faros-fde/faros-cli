@@ -117,9 +117,9 @@ describe('Linear sync integration', () => {
     // Docker images are now read from faros.config.yaml
     // srcImage and dstImage fields should include version tags
     const expectedSrcImage = 'farosfde/airbyte-linear-source:1.0.1';
-    const expectedDstImage = 'farosfde/airbyte-faros-destination:linear';
+    const expectedDstImage = 'farosfde/airbyte-faros-destination:1.0.1';
     expect(expectedSrcImage).toBe('farosfde/airbyte-linear-source:1.0.1');
-    expect(expectedDstImage).toBe('farosfde/airbyte-faros-destination:linear');
+    expect(expectedDstImage).toBe('farosfde/airbyte-faros-destination:1.0.1');
   });
 
   it('should support all Linear connector streams', () => {
