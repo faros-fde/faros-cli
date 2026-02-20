@@ -6,6 +6,7 @@ import * as os from 'os';
 import chalk from 'chalk';
 import { loadConfig, mergeConfig } from '../../config/loader';
 import { ui } from '../../lib/ui';
+import { createClient } from '../../lib/api/client';
 import { SyncLinearOptions } from '../../types/config';
 
 interface LinearConfig {
@@ -101,6 +102,45 @@ async function runAirbyteSync(configPath: string): Promise<void> {
   });
 }
 
+interface SyncStats {
+  tasks: number;
+  projects: number;
+  taskBoards: number;
+  users: number;
+}
+
+async function querySyncStats(apiKey: string, url: string, graph: string, origin: string): Promise<SyncStats> {
+  const config = { apiKey, url, graph, origin };
+  const client = createClient(config);
+
+  const query = `
+    query {
+      tms_Task_aggregate(where: {source: {_eq: "Linear"}}) {
+        aggregate { count }
+      }
+      tms_Project_aggregate(where: {source: {_eq: "Linear"}}) {
+        aggregate { count }
+      }
+      tms_TaskBoard_aggregate(where: {source: {_eq: "Linear"}}) {
+        aggregate { count }
+      }
+      tms_User_aggregate(where: {source: {_eq: "Linear"}}) {
+        aggregate { count }
+      }
+    }
+  `;
+
+  const response = await client.post(`/graphs/${graph}/graphql`, { query });
+  const data = response.data.data;
+
+  return {
+    tasks: data.tms_Task_aggregate.aggregate.count,
+    projects: data.tms_Project_aggregate.aggregate.count,
+    taskBoards: data.tms_TaskBoard_aggregate.aggregate.count,
+    users: data.tms_User_aggregate.aggregate.count,
+  };
+}
+
 async function syncLinearData(options: SyncLinearOptions): Promise<void> {
   const fileConfig = await loadConfig();
   const config = mergeConfig(fileConfig, options);
@@ -179,10 +219,37 @@ async function syncLinearData(options: SyncLinearOptions): Promise<void> {
 
     syncSpinner.succeed('Linear data synced successfully');
 
-    console.log();
-    ui.log.success('Sync completed');
-    console.log(chalk.dim(`  Graph: ${config.graph}`));
-    console.log(chalk.dim(`  View in Faros: ${config.url.replace('/api', '')}/${config.graph}/tms`));
+    // Query stats after sync
+    const statsSpinner = ui.spinner('Fetching sync statistics...');
+    statsSpinner.start();
+    
+    try {
+      const stats = await querySyncStats(config.apiKey!, config.url, config.graph, config.origin);
+      statsSpinner.succeed('Statistics retrieved');
+
+      console.log();
+      ui.log.success('Sync completed');
+      console.log();
+      console.log(chalk.bold('Records synced:'));
+      console.log(chalk.cyan(`  • Tasks: ${stats.tasks.toLocaleString()}`));
+      console.log(chalk.cyan(`  • Projects: ${stats.projects.toLocaleString()}`));
+      console.log(chalk.cyan(`  • Task Boards: ${stats.taskBoards.toLocaleString()}`));
+      console.log(chalk.cyan(`  • Users: ${stats.users.toLocaleString()}`));
+      console.log();
+      console.log(chalk.bold('Destination:'));
+      console.log(chalk.dim(`  • Graph: ${config.graph}`));
+      console.log(chalk.dim(`  • Origin: ${config.origin}`));
+      console.log(chalk.dim(`  • View in UI: ${config.url.replace('/api', '')}/${config.graph}/tms`));
+    } catch (error: any) {
+      statsSpinner.fail('Could not retrieve statistics');
+      ui.log.warning(`Stats query failed: ${error.message}`);
+      
+      // Fall back to basic success message
+      console.log();
+      ui.log.success('Sync completed');
+      console.log(chalk.dim(`  Graph: ${config.graph}`));
+      console.log(chalk.dim(`  View in Faros: ${config.url.replace('/api', '')}/${config.graph}/tms`));
+    }
   } catch (error: any) {
     // Try to fail spinner if it's still running
     try {
