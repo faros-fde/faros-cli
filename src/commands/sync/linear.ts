@@ -24,8 +24,9 @@ interface LinearConfig {
         api_key: string;
         graph: string;
         api_url?: string;
-        origin?: string;
       };
+      origin?: string;
+      accept_input_records_origin?: boolean;
     };
   };
 }
@@ -44,14 +45,15 @@ function createTempConfig(options: SyncLinearOptions, config: any): string {
       },
     },
     dst: {
-      image: 'farosai/airbyte-faros-destination:latest',
+      image: 'farossam/airbyte-faros-destination:linear',
       config: {
         edition_configs: {
           api_key: config.apiKey,
           graph: config.graph,
           api_url: config.url,
-          origin: config.origin,
         },
+        origin: config.origin,
+        accept_input_records_origin: false,
       },
     },
   };
@@ -118,6 +120,10 @@ async function syncLinearData(options: SyncLinearOptions): Promise<void> {
     throw new Error('Faros graph is required. Set FAROS_GRAPH environment variable or use --graph.');
   }
 
+  if (!config.origin) {
+    throw new Error('Origin is required. Set FAROS_ORIGIN environment variable or configure in faros.config.yaml.');
+  }
+
   // Get cutoff days and page size from options or config file defaults
   const linearSource = config.sources?.linear;
   const cutoffDays = options.cutoffDays || linearSource?.cutoffDays || 90;
@@ -134,7 +140,7 @@ async function syncLinearData(options: SyncLinearOptions): Promise<void> {
     console.log(`  Page Size: ${pageSize}`);
     console.log();
     console.log(chalk.blue('Destination:'));
-    console.log(`  Image: farosai/airbyte-faros-destination:latest`);
+    console.log(`  Image: farossam/airbyte-faros-destination:linear`);
     console.log(`  Graph: ${config.graph}`);
     console.log(`  URL: ${config.url}`);
     console.log(`  Origin: ${config.origin}`);

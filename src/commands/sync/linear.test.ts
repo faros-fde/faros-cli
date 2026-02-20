@@ -120,8 +120,8 @@ describe('Linear sync integration', () => {
   });
 
   it('should use Faros destination image', () => {
-    const expectedDestImage = 'farosai/airbyte-faros-destination:latest';
-    expect(expectedDestImage).toBe('farosai/airbyte-faros-destination:latest');
+    const expectedDestImage = 'farossam/airbyte-faros-destination:linear';
+    expect(expectedDestImage).toBe('farossam/airbyte-faros-destination:linear');
   });
 
   it('should support all Linear connector streams', () => {
