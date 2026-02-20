@@ -291,7 +291,6 @@ async function syncLinearData(options: SyncLinearOptions): Promise<void> {
       console.log(chalk.bold('Destination:'));
       console.log(chalk.dim(`  • Graph: ${config.graph}`));
       console.log(chalk.dim(`  • Origin: ${config.origin}`));
-      console.log(chalk.dim(`  • View in UI: ${config.url.replace('/api', '')}/${config.graph}/tms`));
     } catch (error: any) {
       statsSpinner.fail('Could not retrieve statistics');
       ui.log.warning(`Stats query failed: ${error.message}`);
