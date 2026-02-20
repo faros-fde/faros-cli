@@ -22,3 +22,7 @@ faros.config.json
 # AWS credentials
 .aws/
 test-results/
+
+# Temporary sync files (may contain secrets)
+faros_airbyte_cli_config.json
+state.json
