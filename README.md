@@ -145,29 +145,28 @@ faros sync linear [options]
 
 **Configuration Priority:**
 1. CLI options (`--linear-api-key`, `--cutoff-days`)
-2. Environment variables (`LINEAR_API_KEY`, `FAROS_API_KEY`, `FAROS_GRAPH`)
+2. Environment variables (`LINEAR_API_KEY`, `FAROS_API_KEY`, `FAROS_GRAPH`, `FAROS_ORIGIN`)
 3. Config file (`faros.config.yaml`)
-4. Defaults
+4. Built-in defaults (ships with the CLI)
 
 **Examples:**
 
-Set environment variables:
+Minimal setup - just create a `.env` file:
 ```bash
-export LINEAR_API_KEY=lin_api_xxx
-export FAROS_API_KEY=your_faros_key
-export FAROS_GRAPH=default
+# .env
+LINEAR_API_KEY=lin_api_xxx
+FAROS_API_KEY=your_faros_key
 ```
 
-Then run:
+Then run (uses default config):
 ```bash
 faros sync linear
 ```
 
-Using config file (`faros.config.yaml`) for defaults:
+Override defaults with your own `faros.config.yaml`:
 ```yaml
-url: https://prod.api.faros.ai
-graph: default
-origin: my-company-ci
+graph: production
+origin: my-company
 
 sources:
   linear:
@@ -175,7 +174,10 @@ sources:
     pageSize: 100     # Larger page size
 ```
 
-**Note:** Never put API keys in config files! Always use environment variables.
+**Security Note:** 
+- ✅ API keys go in `.env` file (auto-loaded, never commit)
+- ✅ Config goes in `faros.config.yaml` (safe to commit)
+- ❌ Never put API keys in `faros.config.yaml` (CLI strips them anyway)
 
 Sync only recent issues (override config):
 ```bash
@@ -205,7 +207,29 @@ faros sync linear --preview
 
 ## Configuration
 
-The CLI uses a two-file configuration approach:
+The CLI ships with sensible defaults in `faros.config.yaml`, so most users only need to set up a `.env` file with their API keys.
+
+**Quick Setup:**
+1. Create a `.env` file with your API keys:
+   ```
+   FAROS_API_KEY=your_faros_api_key
+   LINEAR_API_KEY=your_linear_api_key  # if using Linear sync
+   ```
+2. Run CLI commands - the default config handles the rest!
+
+### Two-File Configuration Approach
+
+The CLI separates configuration into two types:
+- **`.env` file** - Secrets and API keys (never commit this!)
+- **`faros.config.yaml`** - Non-sensitive defaults (safe to commit)
+
+A default `faros.config.yaml` is included with sensible defaults:
+- API URL: `https://prod.api.faros.ai`
+- Graph: `default`
+- Origin: `faros-cli`
+- Linear cutoff: 180 days
+
+You can override these by creating your own `faros.config.yaml` or using environment variables.
 
 ### Environment Variables
 
@@ -224,7 +248,7 @@ The CLI can be configured entirely through environment variables, which is ideal
 |----------|-------------|---------|---------|
 | `FAROS_URL` | Faros API URL | `https://prod.api.faros.ai` | `https://prod.api.faros.ai` |
 | `FAROS_GRAPH` | Target graph name | `default` | `my-graph` |
-| `FAROS_ORIGIN` | Origin identifier for synced data | - | `my-company-ci` |
+| `FAROS_ORIGIN` | Origin identifier for synced data | `faros-cli` | `my-company-ci` |
 
 #### Logging and Debug
 
@@ -235,13 +259,18 @@ The CLI can be configured entirely through environment variables, which is ideal
 
 ### Configuration File
 
-Store non-sensitive configuration in `faros.config.yaml`:
+The CLI ships with a default `faros.config.yaml` that works out of the box. You can override it by creating your own `faros.config.yaml` in your project:
 
 ```yaml
-# Faros API configuration
+# Override API configuration (optional)
 url: https://prod.api.faros.ai
-graph: default
-origin: my-company-ci
+graph: production  # use a different graph
+origin: my-company-ci  # custom origin identifier
+
+# Customize Linear sync defaults
+sources:
+  linear:
+    cutoffDays: 30  # fetch last 30 days instead of default 180
 
 # Default values for commands
 defaults:
@@ -250,7 +279,7 @@ defaults:
   concurrency: 8
 ```
 
-See `faros.config.example.yaml` for a complete template with detailed comments.
+**Important:** Never put API keys in `faros.config.yaml`! The CLI automatically strips any credentials from config files. All secrets must be in `.env` or environment variables.
 
 ### Configuration Priority
 
