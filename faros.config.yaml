@@ -27,7 +27,7 @@ sources:
     # endDate: "2025-01-01"
     connectionName: faros-cli-linear
     # Docker images for Linear sync (include version tags)
-    srcImage: farosfde/airbyte-linear-source:1.0.1
+    srcImage: farosfde/airbyte-linear-source:1.0.2
     dstImage: farosfde/airbyte-faros-destination:1.0.1
   
 # ==============================================================================
