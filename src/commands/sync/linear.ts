@@ -58,11 +58,11 @@ function createTempConfig(options: SyncLinearOptions, config: any): string {
 
   const airbyteConfig: LinearConfig = {
     src: {
-      image: 'farossam/airbyte-linear-source:1.0.1',
+      image: 'farosfde/airbyte-linear-source:1.0.1',
       config: srcConfig,
     },
     dst: {
-      image: 'farossam/airbyte-faros-destination:linear',
+      image: 'farosfde/airbyte-faros-destination:linear',
       config: {
         edition_configs: {
           api_key: config.apiKey,
@@ -207,7 +207,7 @@ async function syncLinearData(options: SyncLinearOptions): Promise<void> {
     console.log(chalk.bold('Linear Sync Configuration:'));
     console.log();
     console.log(chalk.blue('Source:'));
-    console.log(`  Image: farossam/airbyte-linear-source:1.0.1`);
+    console.log(`  Image: farosfde/airbyte-linear-source:1.0.1`);
     
     // Show date filtering method
     if (startDate || endDate) {
@@ -218,7 +218,7 @@ async function syncLinearData(options: SyncLinearOptions): Promise<void> {
     console.log(`  Page Size: ${pageSize}`);
     console.log();
     console.log(chalk.blue('Destination:'));
-    console.log(`  Image: farossam/airbyte-faros-destination:linear`);
+    console.log(`  Image: farosfde/airbyte-faros-destination:linear`);
     console.log(`  Graph: ${config.graph}`);
     console.log(`  URL: ${config.url}`);
     console.log(`  Origin: ${config.origin}`);

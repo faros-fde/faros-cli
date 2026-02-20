@@ -26,8 +26,8 @@ sources:
     # startDate: "2024-01-01"
     # endDate: "2025-01-01"
     connectionName: faros-cli-linear
-    srcImage: farossam/airbyte-linear-source
-    dstImage: farossam/airbyte-faros-destination
+    srcImage: farosfde/airbyte-linear-source
+    dstImage: farosfde/airbyte-faros-destination
   
 # ==============================================================================
 # Logging
