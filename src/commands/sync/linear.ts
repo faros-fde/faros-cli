@@ -34,7 +34,7 @@ interface LinearConfig {
   };
 }
 
-function createTempConfig(options: SyncLinearOptions, config: any): string {
+function createTempConfig(options: SyncLinearOptions, config: any, srcImage: string, dstImage: string): string {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'faros-linear-'));
   const configPath = path.join(tempDir, 'faros_airbyte_cli_config.json');
 
@@ -58,11 +58,11 @@ function createTempConfig(options: SyncLinearOptions, config: any): string {
 
   const airbyteConfig: LinearConfig = {
     src: {
-      image: 'farosfde/airbyte-linear-source:1.0.1',
+      image: srcImage,
       config: srcConfig,
     },
     dst: {
-      image: 'farosfde/airbyte-faros-destination:linear',
+      image: dstImage,
       config: {
         edition_configs: {
           api_key: config.apiKey,
@@ -187,6 +187,10 @@ async function syncLinearData(options: SyncLinearOptions): Promise<void> {
   const endDate = options.endDate || linearSource?.endDate;
   const pageSize = options.pageSize || linearSource?.pageSize;
 
+  // Get Docker images from config
+  const srcImage = linearSource?.srcImage;
+  const dstImage = linearSource?.dstImage;
+
   // Validate required Linear source configuration
   if (!linearSource) {
     throw new Error('Linear source configuration not found in faros.config.yaml. Add a "sources.linear" section.');
@@ -194,6 +198,14 @@ async function syncLinearData(options: SyncLinearOptions): Promise<void> {
 
   if (!pageSize) {
     throw new Error('Linear pageSize is required. Set in faros.config.yaml under sources.linear.pageSize or use --page-size.');
+  }
+
+  if (!srcImage) {
+    throw new Error('Linear srcImage is required. Set in faros.config.yaml under sources.linear.srcImage (e.g., farosfde/airbyte-linear-source:1.0.1).');
+  }
+
+  if (!dstImage) {
+    throw new Error('Linear dstImage is required. Set in faros.config.yaml under sources.linear.dstImage (e.g., farosfde/airbyte-faros-destination:linear).');
   }
 
   // Require either date range OR cutoffDays
@@ -207,7 +219,7 @@ async function syncLinearData(options: SyncLinearOptions): Promise<void> {
     console.log(chalk.bold('Linear Sync Configuration:'));
     console.log();
     console.log(chalk.blue('Source:'));
-    console.log(`  Image: farosfde/airbyte-linear-source:1.0.1`);
+    console.log(`  Image: ${srcImage}`);
     
     // Show date filtering method
     if (startDate || endDate) {
@@ -218,7 +230,7 @@ async function syncLinearData(options: SyncLinearOptions): Promise<void> {
     console.log(`  Page Size: ${pageSize}`);
     console.log();
     console.log(chalk.blue('Destination:'));
-    console.log(`  Image: farosfde/airbyte-faros-destination:linear`);
+    console.log(`  Image: ${dstImage}`);
     console.log(`  Graph: ${config.graph}`);
     console.log(`  URL: ${config.url}`);
     console.log(`  Origin: ${config.origin}`);
@@ -248,7 +260,7 @@ async function syncLinearData(options: SyncLinearOptions): Promise<void> {
       endDate,
       pageSize,
     };
-    configPath = createTempConfig(tempOptions, config);
+    configPath = createTempConfig(tempOptions, config, srcImage, dstImage);
     spinner.succeed('Configuration prepared');
 
     const syncSpinner = ui.spinner('Syncing Linear data to Faros...');
