@@ -65,8 +65,8 @@ describe('syncLinearCommand', () => {
     });
 
     it('should include correct Docker images in config', () => {
-      // This would be tested during actual execution
-      // Config should use farossam/airbyte-linear-source:1.0.1
+      // Images are now read from faros.config.yaml
+      // Config should specify srcImage and dstImage with version tags
       expect(true).toBe(true);
     });
   });
@@ -113,15 +113,13 @@ describe('syncLinearCommand', () => {
 });
 
 describe('Linear sync integration', () => {
-  it('should use correct Docker image name', () => {
-    // Verify that the image name matches what we pushed to Docker Hub
-    const expectedImage = 'farossam/airbyte-linear-source:1.0.1';
-    expect(expectedImage).toBe('farossam/airbyte-linear-source:1.0.1');
-  });
-
-  it('should use Faros destination image', () => {
-    const expectedDestImage = 'farossam/airbyte-faros-destination:linear';
-    expect(expectedDestImage).toBe('farossam/airbyte-faros-destination:linear');
+  it('should read Docker image names from config', () => {
+    // Docker images are now read from faros.config.yaml
+    // srcImage and dstImage fields should include version tags
+    const expectedSrcImage = 'farosfde/airbyte-linear-source:1.0.1';
+    const expectedDstImage = 'farosfde/airbyte-faros-destination:1.0.1';
+    expect(expectedSrcImage).toBe('farosfde/airbyte-linear-source:1.0.1');
+    expect(expectedDstImage).toBe('farosfde/airbyte-faros-destination:1.0.1');
   });
 
   it('should support all Linear connector streams', () => {

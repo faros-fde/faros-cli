@@ -6,6 +6,7 @@ import * as os from 'os';
 import chalk from 'chalk';
 import { loadConfig, mergeConfig } from '../../config/loader';
 import { ui } from '../../lib/ui';
+import { createClient } from '../../lib/api/client';
 import { SyncLinearOptions } from '../../types/config';
 
 interface LinearConfig {
@@ -14,6 +15,8 @@ interface LinearConfig {
     config: {
       api_key: string;
       cutoff_days?: number;
+      start_date?: string;
+      end_date?: string;
       page_size?: number;
     };
   };
@@ -31,21 +34,35 @@ interface LinearConfig {
   };
 }
 
-function createTempConfig(options: SyncLinearOptions, config: any): string {
+function createTempConfig(options: SyncLinearOptions, config: any, srcImage: string, dstImage: string): string {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'faros-linear-'));
   const configPath = path.join(tempDir, 'faros_airbyte_cli_config.json');
 
+  // Build source config with date filtering
+  const srcConfig: any = {
+    api_key: options.linearApiKey || '',
+    page_size: options.pageSize,
+  };
+
+  // Date filtering: use startDate/endDate if provided, otherwise use cutoffDays
+  if (options.startDate) {
+    srcConfig.start_date = options.startDate;
+  }
+  if (options.endDate) {
+    srcConfig.end_date = options.endDate;
+  }
+  // Only use cutoff_days if no explicit dates provided
+  if (!options.startDate && !options.endDate) {
+    srcConfig.cutoff_days = options.cutoffDays;
+  }
+
   const airbyteConfig: LinearConfig = {
     src: {
-      image: 'farossam/airbyte-linear-source:1.0.1',
-      config: {
-        api_key: options.linearApiKey || '',
-        cutoff_days: options.cutoffDays || 90,
-        page_size: options.pageSize || 50,
-      },
+      image: srcImage,
+      config: srcConfig,
     },
     dst: {
-      image: 'farossam/airbyte-faros-destination:linear',
+      image: dstImage,
       config: {
         edition_configs: {
           api_key: config.apiKey,
@@ -101,6 +118,45 @@ async function runAirbyteSync(configPath: string): Promise<void> {
   });
 }
 
+interface SyncStats {
+  tasks: number;
+  projects: number;
+  taskBoards: number;
+  users: number;
+}
+
+async function querySyncStats(apiKey: string, url: string, graph: string, origin: string): Promise<SyncStats> {
+  const config = { apiKey, url, graph, origin };
+  const client = createClient(config);
+
+  const query = `
+    query {
+      tms_Task_aggregate(where: {source: {_eq: "Linear"}}) {
+        aggregate { count }
+      }
+      tms_Project_aggregate(where: {source: {_eq: "Linear"}}) {
+        aggregate { count }
+      }
+      tms_TaskBoard_aggregate(where: {source: {_eq: "Linear"}}) {
+        aggregate { count }
+      }
+      tms_User_aggregate(where: {source: {_eq: "Linear"}}) {
+        aggregate { count }
+      }
+    }
+  `;
+
+  const response = await client.post(`/graphs/${graph}/graphql`, { query });
+  const data = response.data.data;
+
+  return {
+    tasks: data.tms_Task_aggregate.aggregate.count,
+    projects: data.tms_Project_aggregate.aggregate.count,
+    taskBoards: data.tms_TaskBoard_aggregate.aggregate.count,
+    users: data.tms_User_aggregate.aggregate.count,
+  };
+}
+
 async function syncLinearData(options: SyncLinearOptions): Promise<void> {
   const fileConfig = await loadConfig();
   const config = mergeConfig(fileConfig, options);
@@ -124,10 +180,38 @@ async function syncLinearData(options: SyncLinearOptions): Promise<void> {
     throw new Error('Origin is required. Set FAROS_ORIGIN environment variable or configure in faros.config.yaml.');
   }
 
-  // Get cutoff days and page size from options or config file defaults
+  // Get date filtering options from CLI or config file
   const linearSource = config.sources?.linear;
-  const cutoffDays = options.cutoffDays || linearSource?.cutoffDays || 90;
-  const pageSize = options.pageSize || linearSource?.pageSize || 50;
+  const cutoffDays = options.cutoffDays || linearSource?.cutoffDays;
+  const startDate = options.startDate || linearSource?.startDate;
+  const endDate = options.endDate || linearSource?.endDate;
+  const pageSize = options.pageSize || linearSource?.pageSize;
+
+  // Get Docker images from config
+  const srcImage = linearSource?.srcImage;
+  const dstImage = linearSource?.dstImage;
+
+  // Validate required Linear source configuration
+  if (!linearSource) {
+    throw new Error('Linear source configuration not found in faros.config.yaml. Add a "sources.linear" section.');
+  }
+
+  if (!pageSize) {
+    throw new Error('Linear pageSize is required. Set in faros.config.yaml under sources.linear.pageSize or use --page-size.');
+  }
+
+  if (!srcImage) {
+    throw new Error('Linear srcImage is required. Set in faros.config.yaml under sources.linear.srcImage (e.g., farosfde/airbyte-linear-source:1.0.1).');
+  }
+
+  if (!dstImage) {
+    throw new Error('Linear dstImage is required. Set in faros.config.yaml under sources.linear.dstImage (e.g., farosfde/airbyte-faros-destination:1.0.1).');
+  }
+
+  // Require either date range OR cutoffDays
+  if (!startDate && !endDate && !cutoffDays) {
+    throw new Error('Linear date filtering is required. Set cutoffDays in faros.config.yaml or use --cutoff-days / --start-date.');
+  }
 
   // Preview mode
   if (options.preview) {
@@ -135,12 +219,18 @@ async function syncLinearData(options: SyncLinearOptions): Promise<void> {
     console.log(chalk.bold('Linear Sync Configuration:'));
     console.log();
     console.log(chalk.blue('Source:'));
-    console.log(`  Image: farossam/airbyte-linear-source:1.0.1`);
-    console.log(`  Cutoff Days: ${cutoffDays}`);
+    console.log(`  Image: ${srcImage}`);
+    
+    // Show date filtering method
+    if (startDate || endDate) {
+      console.log(`  Date Range: ${startDate || '(beginning)'} to ${endDate || '(now)'}`);
+    } else {
+      console.log(`  Cutoff Days: ${cutoffDays}`);
+    }
     console.log(`  Page Size: ${pageSize}`);
     console.log();
     console.log(chalk.blue('Destination:'));
-    console.log(`  Image: farossam/airbyte-faros-destination:linear`);
+    console.log(`  Image: ${dstImage}`);
     console.log(`  Graph: ${config.graph}`);
     console.log(`  URL: ${config.url}`);
     console.log(`  Origin: ${config.origin}`);
@@ -166,9 +256,11 @@ async function syncLinearData(options: SyncLinearOptions): Promise<void> {
       ...options,
       linearApiKey,
       cutoffDays,
+      startDate,
+      endDate,
       pageSize,
     };
-    configPath = createTempConfig(tempOptions, config);
+    configPath = createTempConfig(tempOptions, config, srcImage, dstImage);
     spinner.succeed('Configuration prepared');
 
     const syncSpinner = ui.spinner('Syncing Linear data to Faros...');
@@ -179,10 +271,37 @@ async function syncLinearData(options: SyncLinearOptions): Promise<void> {
 
     syncSpinner.succeed('Linear data synced successfully');
 
-    console.log();
-    ui.log.success('Sync completed');
-    console.log(chalk.dim(`  Graph: ${config.graph}`));
-    console.log(chalk.dim(`  View in Faros: ${config.url.replace('/api', '')}/${config.graph}/tms`));
+    // Query stats after sync
+    const statsSpinner = ui.spinner('Fetching sync statistics...');
+    statsSpinner.start();
+    
+    try {
+      const stats = await querySyncStats(config.apiKey!, config.url, config.graph, config.origin);
+      statsSpinner.succeed('Statistics retrieved');
+
+      console.log();
+      ui.log.success('Sync completed');
+      console.log();
+      console.log(chalk.bold('Records synced:'));
+      console.log(chalk.cyan(`  • Tasks: ${stats.tasks.toLocaleString()}`));
+      console.log(chalk.cyan(`  • Projects: ${stats.projects.toLocaleString()}`));
+      console.log(chalk.cyan(`  • Task Boards: ${stats.taskBoards.toLocaleString()}`));
+      console.log(chalk.cyan(`  • Users: ${stats.users.toLocaleString()}`));
+      console.log();
+      console.log(chalk.bold('Destination:'));
+      console.log(chalk.dim(`  • Graph: ${config.graph}`));
+      console.log(chalk.dim(`  • Origin: ${config.origin}`));
+      console.log(chalk.dim(`  • View in UI: ${config.url.replace('/api', '')}/${config.graph}/tms`));
+    } catch (error: any) {
+      statsSpinner.fail('Could not retrieve statistics');
+      ui.log.warning(`Stats query failed: ${error.message}`);
+      
+      // Fall back to basic success message
+      console.log();
+      ui.log.success('Sync completed');
+      console.log(chalk.dim(`  Graph: ${config.graph}`));
+      console.log(chalk.dim(`  View in Faros: ${config.url.replace('/api', '')}/${config.graph}/tms`));
+    }
   } catch (error: any) {
     // Try to fail spinner if it's still running
     try {
@@ -215,6 +334,8 @@ export function syncLinearCommand(): Command {
     .description('Sync Linear issues, projects, teams, and users to Faros')
     .option('--linear-api-key <key>', 'Linear API key (or set LINEAR_API_KEY env var)')
     .option('--cutoff-days <days>', 'Fetch issues updated in the last N days', parseInt)
+    .option('--start-date <date>', 'Start date for fetching data (YYYY-MM-DD format)')
+    .option('--end-date <date>', 'End date for fetching data (YYYY-MM-DD format)')
     .option('--page-size <size>', 'Number of records per API call (1-250)', parseInt)
     .option('--preview', 'Show sync configuration without executing')
     .addHelpText('after', `
@@ -229,24 +350,27 @@ Examples:
   # Sync only recent issues (last 30 days)
   $ faros sync linear --cutoff-days 30
 
+  # Or use explicit date range
+  $ faros sync linear --start-date 2024-01-01 --end-date 2024-12-31
+
   # Preview configuration before syncing
   $ faros sync linear --preview
 
 Configuration:
+  Requires faros.config.yaml with Linear source configuration.
   The command reads configuration from multiple sources (in order of precedence):
   1. CLI options (--linear-api-key, --cutoff-days, etc.)
   2. Environment variables (LINEAR_API_KEY, FAROS_API_KEY, FAROS_GRAPH)
-  3. Config file (faros.config.yaml)
-  4. Defaults (cutoff-days: 90, page-size: 50)
+  3. Config file (faros.config.yaml) - required
 
   Example faros.config.yaml:
     url: https://prod.api.faros.ai
     graph: default
-    origin: my-company-ci
+    origin: faros-cli
     sources:
       linear:
-        cutoffDays: 30
-        pageSize: 100
+        cutoffDays: 180  # required: days to look back
+        pageSize: 50     # required: records per API call
 
 Notes:
   - Linear API key can be generated at https://linear.app/settings/api

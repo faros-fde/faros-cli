@@ -3,10 +3,10 @@ import { z } from 'zod';
 // Config schema
 // NOTE: All credentials (API keys, tokens) MUST be in .env or env vars, NOT in config files.
 export const ConfigSchema = z.object({
-  // API Configuration (can be in config file)
-  url: z.string().url().default('https://prod.api.faros.ai'),
-  graph: z.string().default('default'),
-  origin: z.string().default('faros-cli'),
+  // API Configuration (required in config file)
+  url: z.string().url(),
+  graph: z.string(),
+  origin: z.string(),
   
   // Credentials - populated at runtime from env vars / CLI flags only.
   // Not read from config file. Set FAROS_API_KEY in .env or environment.
@@ -38,12 +38,12 @@ export const ConfigSchema = z.object({
   defaults: z.object({
     testSource: z.string().optional(),
     testType: z.string().optional(),
-    concurrency: z.number().default(8),
+    concurrency: z.number().optional(),
   }).optional(),
   
   // Logging
   logs: z.object({
-    level: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
+    level: z.enum(['debug', 'info', 'warn', 'error']),
   }).optional(),
 });
 

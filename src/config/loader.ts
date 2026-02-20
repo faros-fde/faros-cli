@@ -64,13 +64,14 @@ export function mergeConfig(
   cliOptions: any,
   envVars: NodeJS.ProcessEnv = process.env
 ): Config {
+  if (!fileConfig) {
+    throw new Error(
+      'Configuration file not found. Please create a faros.config.yaml file. ' +
+      'See https://github.com/faros-fde/faros-cli for configuration template.'
+    );
+  }
+
   const merged: any = {
-    url: 'https://prod.api.faros.ai',
-    graph: 'default',
-    origin: 'faros-cli',
-    defaults: {
-      concurrency: 8,
-    },
     ...fileConfig,
   };
   
