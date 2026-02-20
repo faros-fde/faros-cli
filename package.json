@@ -27,7 +27,8 @@
   },
   "files": [
     "lib/",
-    "bin/"
+    "bin/",
+    "faros.config.yaml"
   ],
   "engines": {
     "node": ">=22"
