@@ -24,8 +24,9 @@ interface LinearConfig {
         api_key: string;
         graph: string;
         api_url?: string;
-        origin?: string;
       };
+      origin?: string;
+      accept_input_records_origin?: boolean;
     };
   };
 }
@@ -50,8 +51,9 @@ function createTempConfig(options: SyncLinearOptions, config: any): string {
           api_key: config.apiKey,
           graph: config.graph,
           api_url: config.url,
-          origin: config.origin,
         },
+        origin: config.origin || 'faros-cli',
+        accept_input_records_origin: false,
       },
     },
   };
